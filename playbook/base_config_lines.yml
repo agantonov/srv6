@@ -1,0 +1,20 @@
+---
+- name: "Configure Juniper Devices" 
+  hosts: all:!ce
+  connection: juniper.device.pyez
+  gather_facts: no
+
+  tasks:
+    - name: "Base config"
+      junos_config:
+        lines:
+          - "delete interfaces ae0"
+          - "delete interfaces ae1"
+          - "delete interfaces ae2"
+          - "delete interfaces ae3"
+          - "delete interfaces ae4"
+          - "delete interfaces ae5"
+          - "delete interfaces ae6"
+
+      register: result
+      diff: true

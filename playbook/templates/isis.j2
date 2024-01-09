@@ -1,0 +1,62 @@
+interfaces {
+    lo0 {
+        unit 0 {
+            family iso {
+                address {{ lo0_iso }};
+            }
+        }
+    }
+}
+protocols {
+    isis {
+{% for interface in interfaces %}
+        interface {{ interface.name }}.0 {
+            level 2 {
+                post-convergence-lfa;
+            }
+            point-to-point;
+        }
+{% endfor %}
+        interface lo0.0 {
+            passive;
+        }
+        source-packet-routing {
+            srv6 {
+{% for locator in locators %}
+                locator {{ locator.name }} {
+{% if locator.end_sid is defined %}
+                    end-sid {{ locator.end_sid }};
+{% endif %}
+                }
+{% endfor %}
+            }
+        }
+        level 1 disable;
+        level 2 wide-metrics-only;
+        backup-spf-options {
+            use-post-convergence-lfa maximum-backup-paths 8;
+            use-source-packet-routing;
+        }
+        traffic-engineering {
+            l3-unicast-topology;
+            advertisement always;
+        }
+    }
+}
+routing-options {
+    source-packet-routing {
+        srv6 {
+{% for locator in locators %}
+            locator {{ locator.name }} {
+                {{ locator.address }};
+{% if locator.micro_sid is defined %}
+                micro-sid;
+{% endif %}
+            }
+{% endfor %} 
+        }
+    }
+    resolution {
+        preserve-nexthop-hierarchy;
+    }
+}

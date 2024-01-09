@@ -1,0 +1,176 @@
+all:
+  vars:
+    ansible_connection: ansible.netcommon.netconf
+    ansible_network_os: junipernetworks.junos.junos
+    ansible_netconf_host_key_checking: false
+  children:
+    pe:
+      hosts:
+        pe1:
+          ansible_host: 172.20.20.12
+          asn: 65100
+          neighbors:
+          - 2001::1:1:0:2
+          - 2001::1:1:0:3
+          lo0_v4: 1.1.0.1
+          lo0_v6: 2001::1:1:0:1
+          lo0_iso: "49.2001.0000.0101.0001.00"
+          type: evo
+          locators:
+          - name: myloc1
+            address: "1111:1111:1111::/48"
+            end_sid: "1111:1111:1111::"
+          - name: myloc2
+            address: "2222:2222:1111::/48"
+            micro_sid: true
+          interfaces:
+          - name: ae0
+            mtu: 9192
+            family:
+            - iso
+            members:
+            - et-0/0/0
+          - name: ae1
+            mtu: 9192
+            family:
+            - iso
+            members:
+            - et-0/0/1
+        pe2:
+          ansible_host: 172.20.20.9
+          asn: 65100
+          neighbors:
+          - 2001::1:1:0:1
+          - 2001::1:1:0:3
+          lo0_v4: 1.1.0.2
+          lo0_v6: 2001::1:1:0:2
+          lo0_iso: "49.2001.0000.0101.0002.00"
+          type: evo
+          locators:
+          - name: myloc1
+            address: "1111:1111:2222::/48"
+            end_sid: "1111:1111:2222::"
+          - name: myloc2
+            address: "2222:2222:2222::/48"
+            micro_sid: true
+          interfaces:
+          - name: ae2
+            mtu: 9192
+            family:
+            - iso
+            members:
+            - et-0/0/1
+          - name: ae3
+            mtu: 9192
+            family:
+            - iso
+            members:
+            - et-0/0/0
+        pe3:
+          ansible_host: 172.20.20.10
+          asn: 65100
+          neighbors:
+          - 2001::1:1:0:1
+          - 2001::1:1:0:2
+          lo0_v4: 1.1.0.3
+          lo0_v6: 2001::1:1:0:3
+          lo0_iso: "49.2001.0000.0101.0003.00"
+          type: evo
+          locators:
+          - name: myloc1
+            address: "1111:1111:3333::/48"
+            end_sid: "1111:1111:3333::"
+          - name: myloc2
+            address: "2222:2222:3333::/48"
+            micro_sid: true
+          interfaces:
+          - name: ae5
+            mtu: 9192
+            family:
+            - iso
+            members:
+            - et-0/0/0
+          - name: ae6
+            mtu: 9192
+            family:
+            - iso
+            members:
+            - et-0/0/1
+    p:
+      hosts:
+        p1:
+          ansible_host: 172.20.20.7
+          lo0_v4: 1.1.0.4
+          lo0_v6: 2001::1:1:0:4
+          lo0_iso: "49.2001.0000.0101.0004.00"
+          type: evo
+          locators:
+          - name: myloc1
+            address: "1111:1111:4444::/48"
+            end_sid: "1111:1111:4444::"
+          interfaces:
+          - name: ae0
+            mtu: 9192
+            family:
+            - iso
+            members:
+            - et-0/0/0
+          - name: ae2
+            mtu: 9192
+            family:
+            - iso
+            members:
+            - et-0/0/1
+          - name: ae4
+            mtu: 9192
+            family:
+            - iso
+            members:
+            - et-0/0/2
+          - name: ae5
+            mtu: 9192
+            family:
+            - iso
+            members:
+            - et-0/0/3
+        p2:
+          ansible_host: 172.20.20.6
+          lo0_v4: 1.1.0.5
+          lo0_v6: 2001::1:1:0:5
+          lo0_iso: "49.2001.0000.0101.0005.00"
+          type: evo
+          locators:
+          - name: myloc1
+            address: "1111:1111:5555::/48"
+            end_sid: "1111:1111:5555::"
+          interfaces:
+          - name: ae3
+            mtu: 9192
+            family:
+            - iso
+            members:
+            - et-0/0/0
+          - name: ae1
+            mtu: 9192
+            family:
+            - iso
+            members:
+            - et-0/0/1
+          - name: ae4
+            mtu: 9192
+            family:
+            - iso
+            members:
+            - et-0/0/2
+          - name: ae6
+            mtu: 9192
+            family:
+            - iso
+            members:
+            - et-0/0/3
+    ce:
+      hosts:
+        ce1:
+          ansible_host: 172.20.20.11
+        ce2:
+          ansible_host: 172.20.20.8

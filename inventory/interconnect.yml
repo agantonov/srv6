@@ -1,0 +1,32 @@
+---
+ipv4_base: 
+ipv6_base: 2001::10:100:0:0
+interlink:
+  - router1: pe1
+    iface1: ae0
+    router2: p1
+    iface2: ae0
+  - router1: pe1
+    iface1: ae1
+    router2: p2
+    iface2: ae1
+  - router1: pe2
+    iface1: ae2
+    router2: p1
+    iface2: ae2
+  - router1: pe2
+    iface1: ae3
+    router2: p2
+    iface2: ae3
+  - router1: p1
+    iface1: ae4
+    router2: p2
+    iface2: ae4
+  - router1: p1
+    iface1: ae5
+    router2: pe3
+    iface2: ae5
+  - router1: p2
+    iface1: ae6
+    router2: pe3
+    iface2: ae6

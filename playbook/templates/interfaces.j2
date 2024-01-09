@@ -1,0 +1,57 @@
+chassis {
+    aggregated-devices {
+        ethernet {
+            device-count 64;
+        }
+    }
+}
+interfaces {
+    lo0 {
+        unit 0 {
+{% if lo0_v4 is defined %}
+            family inet {
+                address {{ lo0_v4 }}/32 {
+                    primary;
+                }
+            }
+{% endif %}
+{% if lo0_v6 is defined %}
+            family inet6 {
+                address {{ lo0_v6 }}/128 {
+                    primary;
+                }
+            }
+{% endif %}
+        }
+    }
+{% for interface in interfaces %}
+{% for member in interface.members %}
+    {{ member }} {
+{% if type == 'evo' %}
+        ether-options {
+{% else %}
+        gigether-options {
+{% endif %}
+            802.3ad {{ interface.name }};
+        }
+    }
+{% endfor %}
+    {{ interface.name }} {
+{% if interface.mtu > 0 %}
+        mtu 9192;
+{% endif %}
+        aggregated-ether-options {
+            lacp {
+                active;
+                periodic fast;
+                fast-failover;
+            }
+        }
+        unit 0 {
+{% for family in interface.family %}
+            family {{ family }};
+{% endfor %}
+        }
+    }
+{% endfor %}
+}

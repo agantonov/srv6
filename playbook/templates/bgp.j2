@@ -1,0 +1,21 @@
+protocols {
+    bgp {
+        group INTERNALv6 {
+            type internal;
+            local-address {{ lo0_v6 }};
+            family evpn {
+                signaling {
+                    advertise-srv6-service;
+                    accept-srv6-service;
+                }
+            }
+{% for neighbor in neighbors %}
+            neighbor {{ neighbor }};
+{% endfor %}
+        }
+    }
+}
+routing-options {
+    router-id {{ lo0_v4 }};
+    autonomous-system {{ asn }};
+}
