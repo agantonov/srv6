@@ -1,0 +1,138 @@
+interfaces {
+{% for interface in services.interfaces %}
+{% for member in interface.members %}
+    {{ member }} {
+{% if type == 'evo' %}
+        ether-options {
+{% else %}
+        gigether-options {
+{% endif %}
+            802.3ad {{ interface.name }};
+        }
+    }
+{% endfor %}
+    {{ interface.name }} {
+        flexible-vlan-tagging;
+        mtu 9192;
+        encapsulation flexible-ethernet-services;
+{% if interface.esi_id is defined %}
+        esi {
+            {{ interface.esi_id }};
+            all-active;
+            df-election-type {
+                preference {
+                    value {{ interface.df_preference }};
+                }
+            }
+        }
+{% endif %}
+        aggregated-ether-options {
+            lacp {
+                active;
+                periodic fast;
+                fast-failover;
+{% if interface.system_id is defined %}
+                system-id {{ interface.system_id }};
+{% endif %}
+                aggregate-wait-time 60;
+            }
+        }
+{% for elan in services.elan %}
+{% if elan.interface == interface.name %}
+        unit {{ elan.vlan_id }} {
+            encapsulation vlan-bridge;
+            vlan-id {{ elan.vlan_id }}
+        }
+{% endif %}
+{% endfor %}
+{% for vpws in services.vpws %}
+{% if  vpws.interface == interface.name %}
+        unit {{ vpws.vlan_id }} {
+            encapsulation vlan-ccc;
+            vlan-id {{ vpws.vlan_id }}
+        }
+{% endif %}
+{% endfor %}
+    }
+{% endfor %}
+}
+routing-instances {
+{% for elan in services.elan %}
+    {{ elan.name }} {
+        instance-type mac-vrf;
+        protocols {
+            evpn {
+                encapsulation srv6;
+                source-packet-routing {
+{% if elan.micro_sid is sameas true %}
+                    srv6 locator {{ elan.locator }} micro-dt2-sid;
+{% else %}
+                    srv6 locator {{ elan.locator }};
+{% endif %}
+                }
+            }
+        }
+        service-type vlan-based;
+        interface {{ elan.interface }}.{{ elan.vlan_id }};
+        route-distinguisher {{ lo0_v4 }}:{{ elan.vlan_id }};
+        vrf-target target:{{ bgp.asn }}:{{ elan.vlan_id }};
+{% if type == 'evo' %}
+        vlans {
+{% elif type == 'junos' %}
+        bridge-domains {
+{% endif %}
+            bd{{ elan.vlan_id }} {
+                vlan-id {{ elan.vlan_id }};
+                interface {{ elan.interface }}.{{ elan.vlan_id }};
+            }
+        }
+    }
+{% endfor %}
+{% for vpws in services.vpws %}
+    {{ vpws.name }} {
+        instance-type evpn-vpws;
+        protocols {
+            evpn {
+                interface {{ vpws.interface }}.{{ vpws.vlan_id }} {
+                    vpws-service-id {
+                        local {{ vpws.local_id }};
+                        remote {{ vpws.remote_id }};
+                        source-packet-routing {
+{% if vpws.end_dx2_sid is defined %}
+                            srv6 locator {{ vpws.locator }} end-dx2-sid {{ vpws.end_dx2_sid }};
+{% else %}
+                            srv6 locator {{ vpws.locator }}
+{% endif %}
+                        }
+                    }
+                }
+                encapsulation srv6;
+            }
+        }
+        interface {{ vpws.interface }}.{{ vpws.vlan_id }};
+        route-distinguisher {{ lo0_v4 }}:{{ vpws.vlan_id }};
+        vrf-target target:{{ bgp.asn }}:{{ vpws.vlan_id }};
+    }
+{% endfor %}
+}
+policy-options {  
+    policy-statement vpws-nh-change {
+        term 1 {
+            from {
+                protocol evpn;
+            }
+            then {
+                next-hop {{ locators[0].end_sid }};
+                accept;
+            }
+        }
+    }
+}
+protocols {
+    bgp {
+        group {{ bgp.group }} {
+            export vpws-nh-change;
+            vpn-apply-export;
+        }
+    }
+}

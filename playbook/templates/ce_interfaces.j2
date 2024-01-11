@@ -1,0 +1,88 @@
+chassis {
+    aggregated-devices {
+        ethernet {
+            device-count 64;
+        }
+    }
+}
+interfaces {
+    lo0 {
+        unit 0 {
+{% if lo0_v4 is defined %}
+            family inet {
+                address {{ lo0_v4 }}/32 {
+                    primary;
+                }
+            }
+{% endif %}
+{% if lo0_v6 is defined %}
+            family inet6 {
+                address {{ lo0_v6 }}/128 {
+                    primary;
+                }
+            }
+{% endif %}
+        }
+    }
+{% for interface in interfaces %}
+{% for member in interface.members %}
+    {{ member }} {
+{% if type == 'evo' %}
+        ether-options {
+{% else %}
+        gigether-options {
+{% endif %}
+            802.3ad {{ interface.name }};
+        }
+    }
+{% endfor %}
+    {{ interface.name }} {
+{% if interface.mtu is defined %}
+        mtu {{ interface.mtu }};
+{% endif %}
+        aggregated-ether-options {
+            lacp {
+                active;
+                periodic fast;
+                fast-failover;
+            }
+        }
+        unit 0 {
+            family ethernet-switching {
+                interface-mode trunk;
+{% for vlan in interface.vlans %}
+                vlan {
+                    members {{ vlan }};
+                }
+{% endfor %}
+            }
+        }
+    }
+{% endfor %}
+    irb { 
+{% for vlan in vlans %}
+        unit {{ vlan.id }} {
+{% if vlan.ip_v4 is defined %}
+            family inet {
+                address {{ vlan.ip_v4 }};
+            }
+{% endif %}
+{% if vlan.ip_v6 is defined %}
+            family inet6 {
+                address {{ vlan.ip_v6 }};
+            }
+{% endif %}
+        }
+{% endfor %}
+    }
+}
+vlans {
+{% for vlan in vlans %}
+    {{ vlan.name }} {
+        vlan-id {{ vlan.id }};
+{% if vlan.ip_v4 is defined or vlan.ip_v6 is defined %}
+        l3-interface irb.{{ vlan.id }};
+{% endif %}
+    }
+{% endfor %}
+}

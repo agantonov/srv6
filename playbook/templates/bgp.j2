@@ -1,6 +1,6 @@
 protocols {
     bgp {
-        group INTERNALv6 {
+        group {{ bgp.group }} {
             type internal;
             local-address {{ lo0_v6 }};
             family evpn {
@@ -9,7 +9,7 @@ protocols {
                     accept-srv6-service;
                 }
             }
-{% for neighbor in neighbors %}
+{% for neighbor in bgp.neighbors %}
             neighbor {{ neighbor }};
 {% endfor %}
         }
@@ -17,5 +17,5 @@ protocols {
 }
 routing-options {
     router-id {{ lo0_v4 }};
-    autonomous-system {{ asn }};
+    autonomous-system {{ bgp.asn }};
 }
