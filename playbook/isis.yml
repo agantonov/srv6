@@ -7,8 +7,8 @@
   tags: juniper
 
   vars:
-    config_dir: "{{ playbook_dir }}/tmp/isis"
-    config_filename: "{{ config_dir }}/{{ inventory_hostname }}.conf"
+    config_dir: "{{ playbook_dir }}/tmp/{{ inventory_hostname }}"
+    config_filename: "{{ config_dir }}/isis.conf"
 
   tasks:
     - name: Create ISIS configuration directory

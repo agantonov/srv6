@@ -7,8 +7,8 @@
   tags: juniper
 
   vars:
-    config_dir: "{{ playbook_dir }}/tmp/vpws"
-    config_filename: "{{ config_dir }}/{{ inventory_hostname }}.conf"
+    config_dir: "{{ playbook_dir }}/tmp/{{ inventory_hostname }}"
+    config_filename: "{{ config_dir }}/vpws.conf"
 
   tasks:
     - name: Create VPWS service configuration directory
