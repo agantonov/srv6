@@ -7,15 +7,15 @@
   tags: juniper
 
   vars:
-    config_dir: "{{ playbook_dir }}/tmp/ce_ifaces"
-    config_filename: "{{ config_dir }}/{{ inventory_hostname }}.conf"
+    config_dir: "{{ playbook_dir }}/tmp/{{ inventory_hostname }}"
+    config_filename: "{{ config_dir }}/ce_ifaces.conf"
 
   tasks:
     - name: Create configuration directory for CE interfaces
       file:
           path: "{{ config_dir }}"
           state: directory
-      run_once: yes
+      run_once: false
 
     - name: Build Configuration
       template: src="ce_interfaces.j2" dest={{ config_filename }}

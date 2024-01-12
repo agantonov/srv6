@@ -1,0 +1,43 @@
+interfaces {
+{% for elan in services.elan %}
+    {{ elan.interface }} {
+        unit {{ elan.vlan_id }} {
+            encapsulation vlan-bridge;
+            vlan-id {{ elan.vlan_id }};
+        }
+    }
+{% endfor %}
+}
+routing-instances {
+{% for elan in services.elan %}
+    {{ elan.name }} {
+        instance-type mac-vrf;
+        protocols {
+            evpn {
+                encapsulation srv6;
+                source-packet-routing {
+{% if elan.micro_sid is sameas true %}
+                    srv6 locator {{ elan.locator }} micro-dt2-sid;
+{% else %}
+                    srv6 locator {{ elan.locator }};
+{% endif %}
+                }
+            }
+        }
+        service-type vlan-based;
+        interface {{ elan.interface }}.{{ elan.vlan_id }};
+        route-distinguisher {{ lo0_v4 }}:{{ elan.vlan_id }};
+        vrf-target target:{{ bgp.asn }}:{{ elan.vlan_id }};
+{% if type == 'evo' %}
+        vlans {
+{% elif type == 'junos' %}
+        bridge-domains {
+{% endif %}
+            bd{{ elan.vlan_id }} {
+                vlan-id {{ elan.vlan_id }};
+                interface {{ elan.interface }}.{{ elan.vlan_id }};
+            }
+        }
+    }
+{% endfor %}
+}

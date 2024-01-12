@@ -37,8 +37,8 @@ interfaces {
     }
 {% endfor %}
     {{ interface.name }} {
-{% if interface.mtu > 0 %}
-        mtu 9192;
+{% if interface.mtu is defined %}
+        mtu {{ interface.mtu }};
 {% endif %}
         aggregated-ether-options {
             lacp {
@@ -54,4 +54,46 @@ interfaces {
         }
     }
 {% endfor %}
+{% if services is defined %}
+{% for interface in services.interfaces %}
+{% for member in interface.members %}
+    {{ member }} {
+{% if type == 'evo' %}
+        ether-options {
+{% else %}
+        gigether-options {
+{% endif %}
+            802.3ad {{ interface.name }};
+        }
+    }
+{% endfor %}
+    {{ interface.name }} {
+        flexible-vlan-tagging;
+        mtu {{ interface.mtu }};
+        encapsulation flexible-ethernet-services;
+{% if interface.esi_id is defined %}
+        esi {
+            {{ interface.esi_id }};
+            all-active;
+            df-election-type {
+                preference {
+                    value {{ interface.df_preference }};
+                }
+            }
+        }
+{% endif %}
+        aggregated-ether-options {
+            lacp {
+                active;
+                periodic fast;
+                fast-failover;
+{% if interface.system_id is defined %}
+                system-id {{ interface.system_id }};
+{% endif %}
+                aggregate-wait-time 60;
+            }
+        }
+    }
+{% endfor %}
+{% endif %}
 }

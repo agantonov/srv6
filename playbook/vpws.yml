@@ -1,0 +1,26 @@
+# ansible-playbook -i inventory/srv6.yml playbook/vpws.yml
+---
+- name: Configure EVPN VPWS Services
+  hosts: pe
+  connection: juniper.device.pyez
+  gather_facts: false
+  tags: juniper
+
+  vars:
+    config_dir: "{{ playbook_dir }}/tmp/vpws"
+    config_filename: "{{ config_dir }}/{{ inventory_hostname }}.conf"
+
+  tasks:
+    - name: Create VPWS service configuration directory
+      file:
+          path: "{{ config_dir }}"
+          state: directory
+      run_once: yes
+
+    - name: Build VPWS Service Configuration
+      template: src="vpws.j2" dest={{ config_filename }}
+
+    - name: Apply VPWS Service Configuration
+      junos_config:
+        src: "{{ config_filename }}"
+      register: response

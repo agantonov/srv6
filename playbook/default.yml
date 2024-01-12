@@ -1,0 +1,27 @@
+# ansible-playbook -i inventory/srv6.yml playbook/default.yml
+---
+- name: Load default config
+  hosts: all
+  connection: juniper.device.pyez
+  gather_facts: false
+  tags: juniper
+
+  vars:
+    config_dir: "{{ playbook_dir }}/tmp/{{ inventory_hostname }}"
+    config_filename: "{{ config_dir }}/default.conf"
+
+  tasks:
+    - name: Create configuration directory for the default config
+      file:
+          path: "{{ config_dir }}"
+          state: directory
+      run_once: yes
+
+    - name: Build Default Configuration
+      template: src="default.j2" dest={{ config_filename }}
+
+    - name: Apply Default Configuration
+      junos_config:
+        src: "{{ config_filename }}"
+        update: override
+      register: response

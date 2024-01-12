@@ -1,0 +1,59 @@
+interfaces {
+{% for vpws in services.vpws %}
+    {{ vpws.interface }} {
+        unit {{ vpws.vlan_id }} {
+            encapsulation vlan-ccc;
+            vlan-id {{ vpws.vlan_id }};
+        }
+    }
+{% endfor %}
+}
+routing-instances {
+{% for vpws in services.vpws %}
+    {{ vpws.name }} {
+        instance-type evpn-vpws;
+        protocols {
+            evpn {
+                interface {{ vpws.interface }}.{{ vpws.vlan_id }} {
+                    vpws-service-id {
+                        local {{ vpws.local_id }};
+                        remote {{ vpws.remote_id }};
+                        source-packet-routing {
+{% if vpws.end_dx2_sid is defined %}
+                            srv6 locator {{ vpws.locator }} end-dx2-sid {{ vpws.end_dx2_sid }};
+{% else %}
+                            srv6 locator {{ vpws.locator }};
+{% endif %}
+                        }
+                    }
+                }
+                encapsulation srv6;
+            }
+        }
+        interface {{ vpws.interface }}.{{ vpws.vlan_id }};
+        route-distinguisher {{ lo0_v4 }}:{{ vpws.vlan_id }};
+        vrf-target target:{{ bgp.asn }}:{{ vpws.vlan_id }};
+    }
+{% endfor %}
+}
+policy-options {  
+    policy-statement vpws-nh-change {
+        term 1 {
+            from {
+                protocol evpn;
+            }
+            then {
+                next-hop {{ locators[0].end_sid }};
+                accept;
+            }
+        }
+    }
+}
+protocols {
+    bgp {
+        group {{ bgp.group }} {
+            export vpws-nh-change;
+            vpn-apply-export;
+        }
+    }
+}

@@ -50,34 +50,42 @@ def generate_config(inventory, output_dir):
         ipv4 = ipv4 + 1
         ipv6 = ipv6 + 1
 
-    if output_dir:
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
-        else:
-            files = glob.glob(output_dir + "/*.conf")
-    else:
+    if not output_dir:
         output_dir = os.getcwd()
-        files = glob.glob(output_dir + "/*.conf")
-
-    for i in files:
-        os.remove(i)
 
     for i in output_data:
-        with open(output_dir + "/" + i[0] + ".conf", "a", encoding="utf-8") as f:
-            f.write("set interfaces {} description {}\n".format(i[1], i[4]))
+        if not os.path.exists(output_dir + "/" + i[0]):
+            os.makedirs(output_dir + "/" + i[0])
+        if os.path.exists(output_dir + "/" + i[0] + "/core_iface_p2p.conf"): 
+            os.remove(output_dir + "/" + i[0] + "/core_iface_p2p.conf")
+
+    for i in output_data:
+        with open(output_dir + "/" + i[0] + "/core_iface_p2p.conf", "a", encoding="utf-8") as f:
+            f.write(
+"interfaces {{\n\
+    {} {{\n\
+        description {};\n".format(i[1], i[4])
+            )
             if input_data["ipv4_base"]:
                 f.write(
-                    "set interfaces {} unit 0 family inet address {}\n".format(
-                        i[1], i[2]
-                    )
+"        unit 0 {{\n\
+            family inet {{\n\
+                address {};\n\
+            }}\n\
+        }}\n".format(i[2])
                 )
             if input_data["ipv6_base"]:
                 f.write(
-                    "set interfaces {} unit 0 family inet6 address {}\n".format(
-                        i[1], i[3]
-                    )
+"        unit 0 {{\n\
+            family inet6 {{\n\
+                address {};\n\
+            }}\n\
+        }}\n".format(i[3])
                 )
-
+            f.write(
+"    }\n\
+}\n"
+            )
 
 # execute
 if __name__ == "__main__":

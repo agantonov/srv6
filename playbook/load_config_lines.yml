@@ -9,12 +9,5 @@
       junos_config:
         lines:
           - "delete interfaces ae0"
-          - "delete interfaces ae1"
-          - "delete interfaces ae2"
-          - "delete interfaces ae3"
-          - "delete interfaces ae4"
-          - "delete interfaces ae5"
-          - "delete interfaces ae6"
-
       register: result
       diff: true

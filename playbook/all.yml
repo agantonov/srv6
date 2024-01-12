@@ -1,0 +1,148 @@
+# ansible-playbook -i inventory/srv6.yml playbook/all.yml
+---
+- name: Assign Phys Interface to Bundle and Configure P2P IPs
+  hosts: pe:p
+  connection: juniper.device.pyez
+  gather_facts: false
+  tags: juniper
+
+  vars:
+    config_dir: "{{ playbook_dir }}/tmp/{{ inventory_hostname }}"
+    config_filename_ae: "{{ config_dir }}/core_iface_ae.conf"
+    config_filename_p2p: "{{ config_dir }}/core_iface_p2p.conf"
+
+  tasks:
+    - name: Create AE configuration directory
+      file:
+          path: "{{ config_dir }}"
+          state: directory
+      run_once: false
+
+    - name: Build AE Configuration
+      template: src="interfaces.j2" dest={{ config_filename_ae }}
+
+    - name: Build P2P IP Configuration for AE
+      command: "python3 {{ playbook_dir }}/library/p2p_ip.py {{ inventory_dir }}/interconnect.yml -o {{ playbook_dir }}/tmp"
+      run_once: true
+
+- name: Configure CE interfaces
+  hosts: ce
+  connection: juniper.device.pyez
+  gather_facts: false
+  tags: juniper
+
+  vars:
+    config_dir: "{{ playbook_dir }}/tmp/{{ inventory_hostname }}"
+    config_filename: "{{ config_dir }}/ce_ifaces.conf"
+
+  tasks:
+    - name: Create configuration directory for CE interfaces
+      file:
+          path: "{{ config_dir }}"
+          state: directory
+      run_once: false
+
+    - name: Build Configuration
+      template: src="ce_interfaces.j2" dest={{ config_filename }}
+
+- name: Configure ISIS SRv6
+  hosts: pe:p
+  connection: juniper.device.pyez
+  gather_facts: false
+  tags: juniper
+
+  vars:
+    config_dir: "{{ playbook_dir }}/tmp/isis"
+    config_filename: "{{ config_dir }}/{{ inventory_hostname }}.conf"
+
+  tasks:
+    - name: Create ISIS configuration directory
+      file:
+          path: "{{ config_dir }}"
+          state: directory
+      run_once: yes
+
+    - name: Build ISIS Configuration
+      template: src="isis.j2" dest={{ config_filename }}
+
+- name: Configure BGP EVPN
+  hosts: pe
+  connection: juniper.device.pyez
+  gather_facts: false
+  tags: juniper
+
+  vars:
+    config_dir: "{{ playbook_dir }}/tmp/{{ inventory_hostname }}"
+    config_filename: "{{ config_dir }}/bgp.conf"
+
+  tasks:
+    - name: Create BGP configuration directory
+      file:
+          path: "{{ config_dir }}"
+          state: directory
+      run_once: yes
+
+    - name: Build BGP Configuration
+      template: src="bgp.j2" dest={{ config_filename }}
+
+- name: Configure EVPN VPWS Services
+  hosts: pe
+  connection: juniper.device.pyez
+  gather_facts: false
+  tags: juniper
+
+  vars:
+    config_dir: "{{ playbook_dir }}/tmp/vpws"
+    config_filename: "{{ config_dir }}/{{ inventory_hostname }}.conf"
+
+  tasks:
+    - name: Create VPWS service configuration directory
+      file:
+          path: "{{ config_dir }}"
+          state: directory
+      run_once: yes
+
+    - name: Build VPWS Service Configuration
+      template: src="vpws.j2" dest={{ config_filename }}
+
+- name: Configure EVPN ELAN Services
+  hosts: pe
+  connection: juniper.device.pyez
+  gather_facts: false
+  tags: juniper
+
+  vars:
+    config_dir: "{{ playbook_dir }}/tmp/{{ inventory_hostname }}"
+    config_filename: "{{ config_dir }}/elan.conf"
+
+  tasks:
+    - name: Create ELAN service configuration directory
+      file:
+          path: "{{ config_dir }}"
+          state: directory
+      run_once: yes
+
+    - name: Build ELAN Service Configuration
+      template: src="elan.j2" dest={{ config_filename }}
+
+- name: Build all config file and apply them to the devices
+  hosts: all
+  connection: juniper.device.pyez
+  gather_facts: false
+  tags: juniper
+
+  vars:
+    config_dir: "{{ playbook_dir }}/tmp/{{ inventory_hostname }}"
+    config_filename: "{{ config_dir }}/all.conf"
+
+  tasks:
+    - name: Assemble Final Configuration
+      assemble:
+        src: "{{ config_dir }}"
+        dest: "{{ config_filename }}"
+
+    - name: Apply Final Configuration
+      junos_config:
+        src: "{{ config_filename }}"
+      register: response
+
