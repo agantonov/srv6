@@ -136,6 +136,11 @@
     config_filename: "{{ config_dir }}/all.conf"
 
   tasks:
+    - name: Remove Final config file (if exists)
+      file:
+        path: "{{ config_filename }}"
+        state: absent
+
     - name: Assemble Final Configuration
       assemble:
         src: "{{ config_dir }}"

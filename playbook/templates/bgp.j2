@@ -1,18 +1,39 @@
 protocols {
     bgp {
-        group {{ bgp.group }} {
+{% for group in bgp.groups %}
+        group {{ group.name }} {
             type internal;
             local-address {{ lo0_v6 }};
+{% for family in group.family %}
+{% if family == "evpn" %}
             family evpn {
                 signaling {
                     advertise-srv6-service;
                     accept-srv6-service;
                 }
             }
-{% for neighbor in bgp.neighbors %}
+{% elif family == "inet-vpn" %}
+            family inet-vpn {
+                unicast {
+                    extended-nexthop;
+                    advertise-srv6-service;
+                    accept-srv6-service;
+                }
+            }
+{% elif family == "inet6-vpn" %}
+            family inet6-vpn {
+                unicast {
+                    advertise-srv6-service;
+                    accept-srv6-service;
+                }
+            }
+{% endif %}
+{% endfor %}
+{% for neighbor in group.neighbors %}
             neighbor {{ neighbor }};
 {% endfor %}
         }
+{% endfor %}
     }
 }
 routing-options {

@@ -51,9 +51,11 @@ policy-options {
 }
 protocols {
     bgp {
-        group {{ bgp.group }} {
+{% for group in bgp.groups %}
+        group {{ group.name }} {
             export vpws-nh-change;
             vpn-apply-export;
         }
+{% endfor %}
     }
 }

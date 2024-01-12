@@ -10,10 +10,15 @@ all:
           ansible_host: 172.20.20.8
           bgp:
             asn: 65100
-            group: INTERNALv6
-            neighbors:
-            - 2001::1:1:0:2
-            - 2001::1:1:0:3
+            groups:
+            - name: INTERNAL
+              family:
+              - evpn
+              - inet-vpn
+              - inet6-vpn
+              neighbors:
+              - 2001::1:1:0:2
+              - 2001::1:1:0:3
           lo0_v4: 1.1.0.1
           lo0_v6: 2001::1:1:0:1
           lo0_iso: "49.2001.0000.0101.0001.00"
@@ -41,6 +46,7 @@ all:
           services:
             interfaces:
             - name: ae10
+              mtu: 9192
               members:
               - ge-0/0/2
               esi_id: "00:01:02:00:00:00:00:00:10:00"
@@ -60,6 +66,7 @@ all:
             vpws:
               - name: vpws100
                 locator: myloc1
+                end_dx2_sid: "1111:1111:1111:100::"
                 local_id: 1
                 remote_id: 2
                 vlan_id: 100
@@ -73,11 +80,16 @@ all:
         pe2:
           ansible_host: 172.20.20.6
           bgp:
-            group: INTERNALv6
             asn: 65100
-            neighbors:
-            - 2001::1:1:0:1
-            - 2001::1:1:0:3
+            groups:
+            - name: INTERNAL
+              family:
+              - evpn
+              - inet-vpn
+              - inet6-vpn
+              neighbors:
+              - 2001::1:1:0:1
+              - 2001::1:1:0:3
           lo0_v4: 1.1.0.2
           lo0_v6: 2001::1:1:0:2
           lo0_iso: "49.2001.0000.0101.0002.00"
@@ -105,6 +117,7 @@ all:
           services:
             interfaces:
             - name: ae10
+              mtu: 9192
               members:
               - ge-0/0/2
               esi_id: "00:01:02:00:00:00:00:00:10:00"
@@ -124,6 +137,7 @@ all:
             vpws:
               - name: vpws100
                 locator: myloc1
+                end_dx2_sid: "1111:1111:2222:100::"
                 local_id: 1
                 remote_id: 2
                 vlan_id: 100
@@ -137,11 +151,16 @@ all:
         pe3:
           ansible_host: 172.20.20.5
           bgp:
-            group: INTERNALv6
             asn: 65100
-            neighbors:
-            - 2001::1:1:0:1
-            - 2001::1:1:0:2
+            groups:
+            - name: INTERNAL
+              family:
+              - evpn
+              - inet-vpn
+              - inet6-vpn
+              neighbors:
+              - 2001::1:1:0:1
+              - 2001::1:1:0:2
           lo0_v4: 1.1.0.3
           lo0_v6: 2001::1:1:0:3
           lo0_iso: "49.2001.0000.0101.0003.00"
@@ -169,6 +188,7 @@ all:
           services:
             interfaces:
             - name: ae20
+              mtu: 9192
               members:
               - ge-0/0/2
             elan:
@@ -185,6 +205,7 @@ all:
             vpws:
               - name: vpws100
                 locator: myloc1
+                end_dx2_sid: "1111:1111:3333:100::"
                 local_id: 2
                 remote_id: 1
                 vlan_id: 100
