@@ -25,7 +25,12 @@ protocols {
 {% for locator in locators %}
                 locator {{ locator.name }} {
 {% if locator.end_sid is defined %}
-                    end-sid {{ locator.end_sid }};
+                    end-sid {{ locator.end_sid }} {
+                        flavor {
+                            psp;
+                            usd;
+                        }
+                    } 
 {% endif %}
                 }
 {% endfor %}
@@ -56,6 +61,9 @@ routing-options {
 {% endfor %}
             no-reduced-srh; 
         }
+    }
+    forwarding-table {
+        srv6-chain-merge;
     }
     resolution {
         preserve-nexthop-hierarchy;

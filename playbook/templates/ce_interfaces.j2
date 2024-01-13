@@ -25,6 +25,7 @@ interfaces {
         }
     }
 {% for interface in interfaces %}
+{% if interface.members is defined %}
 {% for member in interface.members %}
     {{ member }} {
 {% if type == 'evo' %}
@@ -36,10 +37,12 @@ interfaces {
         }
     }
 {% endfor %}
+{% endif %}
     {{ interface.name }} {
 {% if interface.mtu is defined %}
         mtu {{ interface.mtu }};
 {% endif %}
+{% if interface.members is defined %}
         aggregated-ether-options {
             lacp {
                 active;
@@ -47,6 +50,7 @@ interfaces {
                 fast-failover;
             }
         }
+{% endif %}
         unit 0 {
             family ethernet-switching {
                 interface-mode trunk;
@@ -86,3 +90,29 @@ vlans {
     }
 {% endfor %}
 }
+{% if virtual_routers is defined %}
+routing-instances {
+{% for vr in virtual_routers %}
+    {{ vr.name }} {
+        instance-type virtual-router;
+        routing-options {
+{% if vr.v6_gw is defined %}
+            rib {{ vr.name }}.inet6.0 {
+                static {
+                    route ::/0 next-hop {{ vr.v6_gw }};
+                }
+            }
+{% endif %}
+{% if vr.v4_gw is defined %}
+            static {
+                route 0.0.0.0/0 next-hop {{ vr.v4_gw }};
+            }
+{% endif %}
+        }
+{% for interface in vr.interfaces %}
+        interface {{ interface }};
+{% endfor %}
+    }
+{% endfor %}
+}
+{% endif %}

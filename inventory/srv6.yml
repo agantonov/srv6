@@ -52,6 +52,8 @@ all:
               esi_id: "00:01:02:00:00:00:00:00:10:00"
               system_id: "00:00:00:00:10:00"
               df_preference: 200
+            - name: ge-0/0/3
+              mtu: 9192
             elan:
               - name: elan200
                 locator: myloc2
@@ -77,6 +79,21 @@ all:
                 remote_id: 2
                 vlan_id: 101
                 interface: ae10
+            l3vpn:
+              - name: l3vpn10
+                locator: myloc1
+                end_dt46_sid: "1111:1111:1111:10::"
+                interface: ge-0/0/3
+                vlan_id: 10
+                ipv4: "192.168.11.1/24"
+                ipv6: "::192:168:11:1/112"
+              - name: l3vpn20
+                locator: myloc2
+                micro_dt46_sid: true
+                interface: ge-0/0/3
+                vlan_id: 20
+                ipv4: "192.168.21.1/24"
+                ipv6: "::192:168:21:1/112"
         pe2:
           ansible_host: 172.20.20.6
           bgp:
@@ -123,6 +140,8 @@ all:
               esi_id: "00:01:02:00:00:00:00:00:10:00"
               system_id: "00:00:00:00:10:00"
               df_preference: 100
+            - name: ge-0/0/3
+              mtu: 9192
             elan:
               - name: elan200
                 locator: myloc2
@@ -148,6 +167,21 @@ all:
                 remote_id: 2
                 vlan_id: 101
                 interface: ae10
+            l3vpn:
+              - name: l3vpn10
+                locator: myloc1
+                end_dt46_sid: "1111:1111:2222:10::"
+                interface: ge-0/0/3
+                vlan_id: 10
+                ipv4: "192.168.12.1/24"
+                ipv6: "::192:168:12:1/112"
+              - name: l3vpn20
+                locator: myloc2
+                micro_dt46_sid: true
+                interface: ge-0/0/3
+                vlan_id: 20
+                ipv4: "192.168.22.1/24"
+                ipv6: "::192:168:22:1/112"
         pe3:
           ansible_host: 172.20.20.5
           bgp:
@@ -216,6 +250,21 @@ all:
                 remote_id: 1
                 vlan_id: 101
                 interface: ae20
+            l3vpn:
+              - name: l3vpn10
+                locator: myloc1
+                end_dt46_sid: "1111:1111:3333:10::"
+                interface: ae20
+                vlan_id: 10
+                ipv4: "192.168.13.1/24"
+                ipv6: "::192:168:13:1/112"
+              - name: l3vpn20
+                locator: myloc2
+                micro_dt46_sid: true
+                interface: ae20
+                vlan_id: 20
+                ipv4: "192.168.23.1/24"
+                ipv6: "::192:168:23:1/112"
     p:
       hosts:
         p1:
@@ -336,11 +385,21 @@ all:
             members:
             - ge-0/0/0
             vlans:
+            - 10
+            - 20
             - 100
             - 101
             - 200
             - 201
           vlans:
+          - name: vlan10
+            id: 10
+            ip_v4: "192.168.13.2/24"
+            ip_v6: "2001::192:168:13:2/112"
+          - name: vlan20
+            id: 20
+            ip_v4: "192.168.23.2/24"
+            ip_v6: "2001::192:168:23:2/112"
           - name: vlan100
             id: 100
             ip_v4: "192.168.100.2/24"
@@ -357,3 +416,14 @@ all:
             id: 201
             ip_v4: "192.168.201.2/24"
             ip_v6: "2001::192:168:201:2/112"
+          virtual_routers:
+          - name: VR10
+            v4_gw: "192.168.13.1"
+            v6_gw: "2001::192:168:13:1"
+            interfaces:
+            - irb.10
+          - name: VR20
+            v4_gw: "192.168.23.1"
+            v6_gw: "2001::192:168:23:1"
+            interfaces:
+            - irb.20

@@ -49,6 +49,7 @@ interfaces {
 {% endfor %}
 {% if services is defined %}
 {% for interface in services.interfaces %}
+{% if interface.members is defined %}
 {% for member in interface.members %}
     {{ member }} {
 {% if type == 'evo' %}
@@ -60,6 +61,7 @@ interfaces {
         }
     }
 {% endfor %}
+{% endif %}
     {{ interface.name }} {
         flexible-vlan-tagging;
         mtu {{ interface.mtu }};
@@ -74,7 +76,6 @@ interfaces {
                 }
             }
         }
-{% endif %}
         aggregated-ether-options {
             lacp {
                 active;
@@ -86,6 +87,7 @@ interfaces {
                 aggregate-wait-time 60;
             }
         }
+{% endif %}
     }
 {% endfor %}
 {% endif %}
