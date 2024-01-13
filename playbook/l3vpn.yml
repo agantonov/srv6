@@ -1,0 +1,26 @@
+# ansible-playbook -i inventory/srv6.yml playbook/l3vpn.yml
+---
+- name: Configure L3VPN Services
+  hosts: pe
+  connection: juniper.device.pyez
+  gather_facts: false
+  tags: juniper
+
+  vars:
+    config_dir: "{{ playbook_dir }}/tmp/{{ inventory_hostname }}"
+    config_filename: "{{ config_dir }}/l3vpn.conf"
+
+  tasks:
+    - name: Create L3VPN service configuration directory
+      file:
+          path: "{{ config_dir }}"
+          state: directory
+      run_once: yes
+
+    - name: Build L3VPN Service Configuration
+      template: src="l3vpn.j2" dest={{ config_filename }}
+
+    - name: Apply L3VPN Service Configuration
+      junos_config:
+        src: "{{ config_filename }}"
+      register: response

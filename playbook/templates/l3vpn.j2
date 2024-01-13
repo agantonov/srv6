@@ -1,0 +1,44 @@
+interfaces {
+{% for l3vpn in services.l3vpn %}
+    {{ l3vpn.interface }} {
+        unit {{ l3vpn.vlan_id }} {
+            vlan-id {{ l3vpn.vlan_id }};
+{% if l3vpn.ipv4 is defined %}
+            family inet {
+                address {{ l3vpn.ipv4 }};
+            }
+{% endif %}
+{% if l3vpn.ipv6 is defined %}
+            family inet6 {
+                address {{ l3vpn.ipv6 }};
+            }
+{% endif %}
+        }
+    }
+{% endfor %}
+}
+routing-instances {
+{% for l3vpn in services.l3vpn %}
+    {{ l3vpn.name }} {
+        instance-type vrf;
+        protocols {
+            bgp {
+                source-packet-routing {
+                    srv6 {
+                        locator {{ l3vpn.locator }} {
+{% if end_dt46_sid is defined %}
+                            end-dt46-sid {{ l3vpn.end_dt46_sid }};
+{% elif micro_dt46_sid is sameas true %}
+                            micro-dt46-sid;
+{% endif %}
+                        }
+                    }
+                }
+            }
+        }
+        interface {{ l3vpn.interface }}.{{ l3vpn.vlan_id }};
+        route-distinguisher {{ lo0_v4 }}:{{ l3vpn.vlan_id }};
+        vrf-target target:{{ bgp.asn }}:{{ l3vpn.vlan_id }};
+    }
+{% endfor %}
+}
