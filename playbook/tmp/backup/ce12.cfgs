@@ -1,0 +1,66 @@
+set version 23.2R1.14
+set system host-name ce12
+set system root-authentication encrypted-password "$6$PrhVpovS$7nuGBoh3h4TMe7690fhBG5dZtyxCIJndrGJQcex7BMf7XXLbr0.pnTR.FaqIsu7fV2kWjLyMtzLxn1WrQL2Rp."
+set system login user aantonov uid 2000
+set system login user aantonov class super-user
+set system login user aantonov authentication ssh-rsa "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDlJRyM6X5x2qOMwJfbTtELc5TCgcti6IwocOa09l75BLnasBVIssaj9fKRKQXtgp01G6fXFcADJiF06wUBY0qQnSPMewLzWEu6CMKpqqULe5WoqKBum4ANeejoFICOZd1V3JkkmpNQiBQH333d9NrRV9ybXxEdMYIK1T+CYytmDBxgJUdaX/IS6rP2AmiOF+GglJyFceHeWjV0BMMTNnAsP9WjyeFIPfZlfLch/74QXJzxQxAYHTffDM85Va2GakSfW3zPGlGEY1GUqJotN+LEm+3DEZb4gawNFdo3Q5Htdi22QLitJDp/qQStjxBnxMMFvQoltC5TRVFPgrXHDcjTm9qlZ/Rv6nw+UTRzzdXhavUAD7KL2CkSOCdv/OsyUyg9MxuTxyuirK5WApZNeAdMDlHIuOqeuzmb9fvg1Vwz57325pu/3B1EwYVTvO2elSqUQQ/NB/KsM0Mx8l1P10aH0eda3RoeUzlqfphEDdduiBlWoad5wpe6yY5W9NFyv48= aantonov@server-14a"
+set system login user aantonov authentication ssh-rsa "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCcYv25hUNeqxJQ8vAC0f1RS8o+rR3uTftjC+vhLKFriNFmCKPonBFarPgcU0bb1pZKsHIZOPWF2ngfTlJbwMo+winjX5SbRxgklMtLVjzgJVibUdK80562roK5TsdSznXdzOkoY29mkf5ZrIr3n3cnOp0zz7VsbCN2QAhPH9bO7o1Q83/oEjkJ6XhxqWCR3nPT44Rn2mOHWja22gp2haHen/fF+SP4QsQVEIxTAyjlNW33H2C402C39KndXp18oTl55qF/WbuTPuGg0pHjjsj01rMQD6oe3XbHSBhtYQX97Ne88okIh80Nn8fIABLXKcY+KljyZMY+iABIgkl/5iYw+Ba6jch9mLW3glSi9kUc/c/yF/P7herb92CvyR2663vQwk7vkuEbvObmbTvjeMAPdwiNhpWytdLDjjGiY6GiosQzOXg+bKRQt4UnbgIUK3EsyZ0mwPhIju47348cxsIHuUqAN8h8uzeU0WTe4dbOYgvQ0P7jaysdXAXSbz0s6sU= aantonov@aantonov-mbp"
+set system login user admin uid 2001
+set system login user admin class super-user
+set system login user admin authentication encrypted-password "$6$VqrSxa3o$n5LFzAlSV1vPErYrWsll3KWdu0I8rlHufIRUny3h7N3Q4q8ePyridnVSykCW30eQVQGExWHisUYEPGXGHU5rv0"
+set system services ssh root-login allow
+set system services ssh client-alive-interval 120
+set system services extension-service request-response grpc clear-text port 32767
+set system services extension-service request-response grpc max-connections 4
+set system services extension-service request-response grpc skip-authentication
+set system services netconf ssh
+set system services netconf rfc-compliant
+set system time-zone Europe/Amsterdam
+set system management-instance
+set system name-server 172.30.207.10
+set system name-server 172.30.207.13
+set system schema openconfig unhide
+set system syslog file interactive-commands interactive-commands any
+set system syslog file messages any notice
+set system syslog file messages authorization info
+set system syslog time-format millisecond
+set system ntp server 172.30.207.10
+set chassis aggregated-devices ethernet device-count 8
+set chassis fpc 0 pic 0 number-of-ports 8
+set chassis network-services enhanced-ip
+set interfaces ge-0/0/0 gigether-options 802.3ad ae12
+set interfaces ge-0/0/1 gigether-options 802.3ad ae12
+set interfaces ae12 mtu 9192
+set interfaces ae12 aggregated-ether-options lacp active
+set interfaces ae12 aggregated-ether-options lacp periodic fast
+set interfaces ae12 aggregated-ether-options lacp fast-failover
+set interfaces ae12 unit 0 family ethernet-switching interface-mode trunk
+set interfaces ae12 unit 0 family ethernet-switching vlan members 100-101
+set interfaces ae12 unit 0 family ethernet-switching vlan members 200-201
+set interfaces fxp0 unit 0 family inet address 10.0.0.15/24
+set interfaces irb unit 100 family inet address 192.168.100.12/24
+set interfaces irb unit 100 family inet6 address ::192:168:100:12/112
+set interfaces irb unit 101 family inet address 192.168.101.12/24
+set interfaces irb unit 101 family inet6 address ::192:168:101:12/112
+set interfaces irb unit 200 family inet address 192.168.200.12/24
+set interfaces irb unit 200 family inet6 address ::192:168:200:12/112
+set interfaces irb unit 201 family inet address 192.168.201.12/24
+set interfaces irb unit 201 family inet6 address ::192:168:201:12/112
+set interfaces lo0 unit 0 family inet address 1.1.0.112/32 primary
+set interfaces lo0 unit 0 family inet6 address 2001::1:1:0:112/128 primary
+set policy-options policy-statement LB then load-balance per-flow
+set routing-instances mgmt_junos routing-options static route 0.0.0.0/0 next-hop 10.0.0.2
+set routing-instances mgmt_junos description management-instance
+set routing-options resolution preserve-nexthop-hierarchy
+set routing-options forwarding-table export LB
+set protocols lldp port-id-subtype interface-name
+set protocols lldp neighbour-port-info-display port-id
+set protocols lldp interface all
+set vlans vlan100 vlan-id 100
+set vlans vlan100 l3-interface irb.100
+set vlans vlan101 vlan-id 101
+set vlans vlan101 l3-interface irb.101
+set vlans vlan200 vlan-id 200
+set vlans vlan200 l3-interface irb.200
+set vlans vlan201 vlan-id 201
+set vlans vlan201 l3-interface irb.201

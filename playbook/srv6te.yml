@@ -1,0 +1,26 @@
+# ansible-playbook -i inventory/srv6.yml playbook/srv6te.yml
+---
+- name: Configure SRv6 TE
+  hosts: pe
+  connection: juniper.device.pyez
+  gather_facts: false
+  tags: juniper
+
+  vars:
+    config_dir: "{{ playbook_dir }}/tmp/{{ inventory_hostname }}"
+    config_filename: "{{ config_dir }}/srv6te.conf"
+
+  tasks:
+    - name: Create SRv6 TE configuration directory
+      file:
+          path: "{{ config_dir }}"
+          state: directory
+      run_once: yes
+
+    - name: Build SRv6 TE Configuration
+      template: src="srv6te.j2" dest={{ config_filename }}
+
+    - name: Apply SRv6 TE Configuration
+      junos_config:
+        src: "{{ config_filename }}"
+      register: response

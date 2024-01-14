@@ -1,0 +1,24 @@
+---
+- name: "Get Junos OS configuration"
+  hosts: all
+  connection: juniper.device.pyez
+  gather_facts: false
+  tags: juniper
+
+  tasks:
+  - name: Backup current config in set format
+    junos_config:
+      backup: yes
+      backup_options:
+        filename: "{{ inventory_hostname }}.cfgs"
+        dir_path: "{{ playbook_dir }}/tmp/backup"
+    when: ansible_network_os == 'junipernetworks.junos.junos'
+
+  - name: Backup current config in text format
+    junos_config:
+      backup: yes
+      backup_options:
+        backup_format: text
+        filename: "{{ inventory_hostname }}.cfg"
+        dir_path: "{{ playbook_dir }}/tmp/backup"
+    when: ansible_network_os == 'junipernetworks.junos.junos'

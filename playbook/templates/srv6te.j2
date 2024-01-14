@@ -1,0 +1,39 @@
+{% if srv6te is defined %}
+protocols {
+    source-packet-routing {
+{% if srv6te.segment_lists is defined %}
+{% for sl in srv6te.segment_lists %}
+        segment-list {{ sl.name }} {
+            srv6;
+{% for hop in sl.hops %}
+{% if hop.micro_sid is sameas true %}
+            {{ hop.name }} {
+                micro-srv6-sid {
+                    {{ hop.sid }};
+                }
+            }
+{% else %}
+            {{ hop.name }} srv6-sid {{ hop.sid }};
+{% endif %}
+{% endfor %}
+        }
+{% endfor %}
+{% endif %}
+        srv6;
+{% if srv6te.sr_paths is defined %}
+{% for path in srv6te.sr_paths %}
+        source-routing-path {{ path.name }} {
+            srv6;
+            to {{ path.to }};
+            from {{ lo0_v6 }};
+{% if path.primary is defined %}
+            primary {
+                {{ path.primary }};
+            }
+{% endif %}
+        }
+{% endfor %}
+{% endif %}
+    }
+}
+{% endif %}

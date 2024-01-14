@@ -7,6 +7,8 @@
   tags: juniper
 
   vars:
+    ansible_user: admin
+    ansible_password: "admin@123"
     config_dir: "{{ playbook_dir }}/tmp/{{ inventory_hostname }}"
     config_filename: "{{ config_dir }}/default.conf"
 
@@ -15,7 +17,7 @@
       file:
           path: "{{ config_dir }}"
           state: directory
-      run_once: yes
+      run_once: false
 
     - name: Build Default Configuration
       template: src="default.j2" dest={{ config_filename }}

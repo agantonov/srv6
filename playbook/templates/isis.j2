@@ -23,16 +23,18 @@ protocols {
         source-packet-routing {
             srv6 {
 {% for locator in locators %}
-                locator {{ locator.name }} {
 {% if locator.end_sid is defined %}
+                locator {{ locator.name }} {
                     end-sid {{ locator.end_sid }} {
                         flavor {
                             psp;
                             usd;
                         }
                     } 
-{% endif %}
                 }
+{% elif locator.micro_sid is defined %}
+                locator {{ locator.name }} micro-node-sid;
+{% endif %}
 {% endfor %}
             }
         }
@@ -44,8 +46,10 @@ protocols {
         }
         traffic-engineering {
             l3-unicast-topology;
+            ipv6;
             advertisement always;
         }
+        no-ipv4-routing;
     }
 }
 routing-options {

@@ -1,0 +1,179 @@
+set version 23.4R1.10
+set system host-name pe2
+set system root-authentication encrypted-password "$6$PrhVpovS$7nuGBoh3h4TMe7690fhBG5dZtyxCIJndrGJQcex7BMf7XXLbr0.pnTR.FaqIsu7fV2kWjLyMtzLxn1WrQL2Rp."
+set system login user aantonov uid 2001
+set system login user aantonov class super-user
+set system login user aantonov authentication ssh-rsa "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDlJRyM6X5x2qOMwJfbTtELc5TCgcti6IwocOa09l75BLnasBVIssaj9fKRKQXtgp01G6fXFcADJiF06wUBY0qQnSPMewLzWEu6CMKpqqULe5WoqKBum4ANeejoFICOZd1V3JkkmpNQiBQH333d9NrRV9ybXxEdMYIK1T+CYytmDBxgJUdaX/IS6rP2AmiOF+GglJyFceHeWjV0BMMTNnAsP9WjyeFIPfZlfLch/74QXJzxQxAYHTffDM85Va2GakSfW3zPGlGEY1GUqJotN+LEm+3DEZb4gawNFdo3Q5Htdi22QLitJDp/qQStjxBnxMMFvQoltC5TRVFPgrXHDcjTm9qlZ/Rv6nw+UTRzzdXhavUAD7KL2CkSOCdv/OsyUyg9MxuTxyuirK5WApZNeAdMDlHIuOqeuzmb9fvg1Vwz57325pu/3B1EwYVTvO2elSqUQQ/NB/KsM0Mx8l1P10aH0eda3RoeUzlqfphEDdduiBlWoad5wpe6yY5W9NFyv48= aantonov@server-14a"
+set system login user aantonov authentication ssh-rsa "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCcYv25hUNeqxJQ8vAC0f1RS8o+rR3uTftjC+vhLKFriNFmCKPonBFarPgcU0bb1pZKsHIZOPWF2ngfTlJbwMo+winjX5SbRxgklMtLVjzgJVibUdK80562roK5TsdSznXdzOkoY29mkf5ZrIr3n3cnOp0zz7VsbCN2QAhPH9bO7o1Q83/oEjkJ6XhxqWCR3nPT44Rn2mOHWja22gp2haHen/fF+SP4QsQVEIxTAyjlNW33H2C402C39KndXp18oTl55qF/WbuTPuGg0pHjjsj01rMQD6oe3XbHSBhtYQX97Ne88okIh80Nn8fIABLXKcY+KljyZMY+iABIgkl/5iYw+Ba6jch9mLW3glSi9kUc/c/yF/P7herb92CvyR2663vQwk7vkuEbvObmbTvjeMAPdwiNhpWytdLDjjGiY6GiosQzOXg+bKRQt4UnbgIUK3EsyZ0mwPhIju47348cxsIHuUqAN8h8uzeU0WTe4dbOYgvQ0P7jaysdXAXSbz0s6sU= aantonov@aantonov-mbp"
+set system login user admin uid 2000
+set system login user admin class super-user
+set system login user admin authentication encrypted-password "$6$VqrSxa3o$n5LFzAlSV1vPErYrWsll3KWdu0I8rlHufIRUny3h7N3Q4q8ePyridnVSykCW30eQVQGExWHisUYEPGXGHU5rv0"
+set system services netconf ssh
+set system services netconf rfc-compliant
+set system services ssh root-login allow
+set system services ssh client-alive-interval 120
+set system services extension-service request-response grpc clear-text port 32767
+set system services extension-service request-response grpc max-connections 4
+set system services extension-service request-response grpc skip-authentication
+set system time-zone Europe/Amsterdam
+set system management-instance
+set system name-server 172.30.207.10
+set system name-server 172.30.207.13
+set system schema openconfig unhide
+set system syslog file interactive-commands interactive-commands any
+set system syslog file messages any notice
+set system syslog file messages authorization info
+set system syslog time-format millisecond
+set system ntp server 172.30.207.10
+set chassis aggregated-devices ethernet device-count 8
+set chassis fpc 0 pic 0 number-of-ports 8
+set chassis network-services enhanced-ip
+set interfaces ge-0/0/0 gigether-options 802.3ad ae3
+set interfaces ge-0/0/1 gigether-options 802.3ad ae2
+set interfaces ge-0/0/2 flexible-vlan-tagging
+set interfaces ge-0/0/2 mtu 9192
+set interfaces ge-0/0/2 encapsulation flexible-ethernet-services
+set interfaces ge-0/0/2 unit 10 vlan-id 10
+set interfaces ge-0/0/2 unit 10 family inet address 192.168.12.1/24
+set interfaces ge-0/0/2 unit 10 family inet6 address ::192:168:12:1/112
+set interfaces ge-0/0/2 unit 20 vlan-id 20
+set interfaces ge-0/0/2 unit 20 family inet address 192.168.22.1/24
+set interfaces ge-0/0/2 unit 20 family inet6 address ::192:168:22:1/112
+set interfaces ge-0/0/2 unit 200 encapsulation vlan-bridge
+set interfaces ge-0/0/2 unit 200 vlan-id 200
+set interfaces ge-0/0/2 unit 201 encapsulation vlan-bridge
+set interfaces ge-0/0/2 unit 201 vlan-id 201
+set interfaces ge-0/0/3 gigether-options 802.3ad ae12
+set interfaces ae2 description to-p1:ae2
+set interfaces ae2 mtu 9192
+set interfaces ae2 aggregated-ether-options lacp active
+set interfaces ae2 aggregated-ether-options lacp periodic fast
+set interfaces ae2 aggregated-ether-options lacp fast-failover
+set interfaces ae2 unit 0 family iso
+set interfaces ae2 unit 0 family inet6 address 2001::10:100:0:4/127
+set interfaces ae3 description to-p2:ae3
+set interfaces ae3 mtu 9192
+set interfaces ae3 aggregated-ether-options lacp active
+set interfaces ae3 aggregated-ether-options lacp periodic fast
+set interfaces ae3 aggregated-ether-options lacp fast-failover
+set interfaces ae3 unit 0 family iso
+set interfaces ae3 unit 0 family inet6 address 2001::10:100:0:6/127
+set interfaces ae12 flexible-vlan-tagging
+set interfaces ae12 mtu 9192
+set interfaces ae12 encapsulation flexible-ethernet-services
+set interfaces ae12 esi 00:01:02:00:00:00:00:00:12:00
+set interfaces ae12 esi all-active
+set interfaces ae12 esi df-election-type preference value 100
+set interfaces ae12 aggregated-ether-options lacp active
+set interfaces ae12 aggregated-ether-options lacp periodic fast
+set interfaces ae12 aggregated-ether-options lacp fast-failover
+set interfaces ae12 aggregated-ether-options lacp system-id 00:00:00:00:12:00
+set interfaces ae12 aggregated-ether-options lacp aggregate-wait-time 60
+set interfaces ae12 unit 100 encapsulation vlan-ccc
+set interfaces ae12 unit 100 vlan-id 100
+set interfaces ae12 unit 101 encapsulation vlan-ccc
+set interfaces ae12 unit 101 vlan-id 101
+set interfaces ae12 unit 200 encapsulation vlan-bridge
+set interfaces ae12 unit 200 vlan-id 200
+set interfaces ae12 unit 201 encapsulation vlan-bridge
+set interfaces ae12 unit 201 vlan-id 201
+set interfaces fxp0 unit 0 family inet address 10.0.0.15/24
+set interfaces lo0 unit 0 family inet address 1.1.0.2/32 primary
+set interfaces lo0 unit 0 family iso address 49.2001.0000.0101.0002.00
+set interfaces lo0 unit 0 family inet6 address 2001::1:1:0:2/128 primary
+set policy-options policy-statement LB then load-balance per-flow
+set policy-options policy-statement vpws-nh-change term 1 from protocol evpn
+set policy-options policy-statement vpws-nh-change term 1 then next-hop 1111:1111:2222::
+set policy-options policy-statement vpws-nh-change term 1 then accept
+set routing-instances elan200 instance-type mac-vrf
+set routing-instances elan200 protocols evpn encapsulation srv6
+set routing-instances elan200 protocols evpn source-packet-routing srv6 locator myloc1
+set routing-instances elan200 protocols evpn source-packet-routing srv6 locator end-dt2-sid
+set routing-instances elan200 bridge-domains bd200 vlan-id 200
+set routing-instances elan200 bridge-domains bd200 interface ae12.200
+set routing-instances elan200 bridge-domains bd200 interface ge-0/0/2.200
+set routing-instances elan200 service-type vlan-based
+set routing-instances elan200 interface ge-0/0/2.200
+set routing-instances elan200 interface ae12.200
+set routing-instances elan200 route-distinguisher 1.1.0.2:200
+set routing-instances elan200 vrf-target target:65100:200
+set routing-instances elan201 instance-type mac-vrf
+set routing-instances elan201 protocols evpn encapsulation srv6
+set routing-instances elan201 protocols evpn source-packet-routing srv6 locator myloc2
+set routing-instances elan201 protocols evpn source-packet-routing srv6 locator micro-dt2-sid
+set routing-instances elan201 bridge-domains bd201 vlan-id 201
+set routing-instances elan201 bridge-domains bd201 interface ae12.201
+set routing-instances elan201 bridge-domains bd201 interface ge-0/0/2.201
+set routing-instances elan201 service-type vlan-based
+set routing-instances elan201 interface ge-0/0/2.201
+set routing-instances elan201 interface ae12.201
+set routing-instances elan201 route-distinguisher 1.1.0.2:201
+set routing-instances elan201 vrf-target target:65100:201
+set routing-instances l3vpn10 instance-type vrf
+set routing-instances l3vpn10 protocols bgp source-packet-routing srv6 locator myloc1 end-dt46-sid 1111:1111:2222:10::
+set routing-instances l3vpn10 interface ge-0/0/2.10
+set routing-instances l3vpn10 route-distinguisher 1.1.0.2:10
+set routing-instances l3vpn10 vrf-target target:65100:10
+set routing-instances l3vpn20 instance-type vrf
+set routing-instances l3vpn20 protocols bgp source-packet-routing srv6 locator myloc2 micro-dt46-sid
+set routing-instances l3vpn20 interface ge-0/0/2.20
+set routing-instances l3vpn20 route-distinguisher 1.1.0.2:20
+set routing-instances l3vpn20 vrf-target target:65100:20
+set routing-instances mgmt_junos routing-options static route 0.0.0.0/0 next-hop 10.0.0.2
+set routing-instances mgmt_junos description management-instance
+set routing-instances vpws100 instance-type evpn-vpws
+set routing-instances vpws100 protocols evpn interface ae12.100 vpws-service-id local 1
+set routing-instances vpws100 protocols evpn interface ae12.100 vpws-service-id remote 2
+set routing-instances vpws100 protocols evpn interface ae12.100 vpws-service-id source-packet-routing srv6 locator myloc1
+set routing-instances vpws100 protocols evpn interface ae12.100 vpws-service-id source-packet-routing srv6 locator end-dx2-sid 1111:1111:2222:100::
+set routing-instances vpws100 protocols evpn encapsulation srv6
+set routing-instances vpws100 interface ae12.100
+set routing-instances vpws100 route-distinguisher 1.1.0.2:100
+set routing-instances vpws100 vrf-target target:65100:100
+set routing-instances vpws101 instance-type evpn-vpws
+set routing-instances vpws101 protocols evpn interface ae12.101 vpws-service-id local 1
+set routing-instances vpws101 protocols evpn interface ae12.101 vpws-service-id remote 2
+set routing-instances vpws101 protocols evpn interface ae12.101 vpws-service-id source-packet-routing srv6 locator myloc1
+set routing-instances vpws101 protocols evpn encapsulation srv6
+set routing-instances vpws101 interface ae12.101
+set routing-instances vpws101 route-distinguisher 1.1.0.2:101
+set routing-instances vpws101 vrf-target target:65100:101
+set routing-options source-packet-routing srv6 locator myloc1 1111:1111:2222::/48
+set routing-options source-packet-routing srv6 locator myloc2 2222:2222:2222::/48
+set routing-options source-packet-routing srv6 locator myloc2 micro-sid
+set routing-options source-packet-routing srv6 no-reduced-srh
+set routing-options resolution preserve-nexthop-hierarchy
+set routing-options router-id 1.1.0.2
+set routing-options autonomous-system 65100
+set routing-options forwarding-table srv6-chain-merge
+set routing-options forwarding-table export LB
+set protocols bgp group INTERNAL type internal
+set protocols bgp group INTERNAL local-address 2001::1:1:0:2
+set protocols bgp group INTERNAL family inet-vpn unicast extended-nexthop
+set protocols bgp group INTERNAL family inet-vpn unicast advertise-srv6-service
+set protocols bgp group INTERNAL family inet-vpn unicast accept-srv6-service
+set protocols bgp group INTERNAL family inet6-vpn unicast advertise-srv6-service
+set protocols bgp group INTERNAL family inet6-vpn unicast accept-srv6-service
+set protocols bgp group INTERNAL family evpn signaling advertise-srv6-service
+set protocols bgp group INTERNAL family evpn signaling accept-srv6-service
+set protocols bgp group INTERNAL export vpws-nh-change
+set protocols bgp group INTERNAL neighbor 2001::1:1:0:1
+set protocols bgp group INTERNAL neighbor 2001::1:1:0:3
+set protocols bgp group INTERNAL vpn-apply-export
+set protocols isis interface ae2.0 level 2 post-convergence-lfa
+set protocols isis interface ae2.0 point-to-point
+set protocols isis interface ae3.0 level 2 post-convergence-lfa
+set protocols isis interface ae3.0 point-to-point
+set protocols isis interface lo0.0 passive
+set protocols isis source-packet-routing srv6 locator myloc1 end-sid 1111:1111:2222:: flavor psp
+set protocols isis source-packet-routing srv6 locator myloc1 end-sid 1111:1111:2222:: flavor usd
+set protocols isis source-packet-routing srv6 locator myloc2 micro-node-sid
+set protocols isis level 1 disable
+set protocols isis level 2 wide-metrics-only
+set protocols isis backup-spf-options use-post-convergence-lfa maximum-backup-paths 8
+set protocols isis backup-spf-options use-source-packet-routing
+set protocols isis traffic-engineering l3-unicast-topology
+set protocols isis traffic-engineering advertisement always
+set protocols lldp port-id-subtype interface-name
+set protocols lldp neighbour-port-info-display port-id
+set protocols lldp interface all

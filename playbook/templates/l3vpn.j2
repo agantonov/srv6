@@ -26,9 +26,9 @@ routing-instances {
                 source-packet-routing {
                     srv6 {
                         locator {{ l3vpn.locator }} {
-{% if end_dt46_sid is defined %}
+{% if l3vpn.end_dt46_sid is defined %}
                             end-dt46-sid {{ l3vpn.end_dt46_sid }};
-{% elif micro_dt46_sid is sameas true %}
+{% elif l3vpn.micro_dt46_sid is sameas true %}
                             micro-dt46-sid;
 {% endif %}
                         }

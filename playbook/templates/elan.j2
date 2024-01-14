@@ -1,11 +1,13 @@
 interfaces {
 {% for elan in services.elan %}
-    {{ elan.interface }} {
+{% for interface in elan.interfaces %}
+    {{ interface }} {
         unit {{ elan.vlan_id }} {
             encapsulation vlan-bridge;
             vlan-id {{ elan.vlan_id }};
         }
     }
+{% endfor %}
 {% endfor %}
 }
 routing-instances {
@@ -19,13 +21,15 @@ routing-instances {
 {% if elan.micro_sid is sameas true %}
                     srv6 locator {{ elan.locator }} micro-dt2-sid;
 {% else %}
-                    srv6 locator {{ elan.locator }};
+                    srv6 locator {{ elan.locator }} end-dt2-sid;
 {% endif %}
                 }
             }
         }
         service-type vlan-based;
-        interface {{ elan.interface }}.{{ elan.vlan_id }};
+{% for interface in elan.interfaces %}
+        interface {{ interface }}.{{ elan.vlan_id }};
+{% endfor %}
         route-distinguisher {{ lo0_v4 }}:{{ elan.vlan_id }};
         vrf-target target:{{ bgp.asn }}:{{ elan.vlan_id }};
 {% if type == 'evo' %}
@@ -35,7 +39,9 @@ routing-instances {
 {% endif %}
             bd{{ elan.vlan_id }} {
                 vlan-id {{ elan.vlan_id }};
-                interface {{ elan.interface }}.{{ elan.vlan_id }};
+{% for interface in elan.interfaces %}
+                interface {{ interface }}.{{ elan.vlan_id }};
+{% endfor %}
             }
         }
     }

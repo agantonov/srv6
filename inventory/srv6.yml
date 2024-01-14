@@ -43,28 +43,52 @@ all:
             - iso
             members:
             - ge-0/0/1
+          srv6te:
+            segment_lists:
+            - name: "SL-to-PE3"
+              hops:
+              - name: P1
+                sid: "2222:2222:4444::"
+                micro_sid: false
+              - name: PE2
+                sid: "2222:2222:2222::"
+                micro_sid: false
+              - name: P2
+                sid: "2222:2222:5555::"
+                micro_sid: false
+              - name: PE3
+                sid: "2222:2222:3333::"
+                micro_sid: false
+            sr_paths:
+            - name: "to-PE3-myloc2"
+              to: "2222:2222:3333::"
+              primary: "SL-to-PE3"
           services:
             interfaces:
-            - name: ae10
+            - name: ae12
               mtu: 9192
               members:
-              - ge-0/0/2
-              esi_id: "00:01:02:00:00:00:00:00:10:00"
-              system_id: "00:00:00:00:10:00"
+              - ge-0/0/3
+              esi_id: "00:01:02:00:00:00:00:00:12:00"
+              system_id: "00:00:00:00:12:00"
               df_preference: 200
-            - name: ge-0/0/3
+            - name: ge-0/0/2
               mtu: 9192
             elan:
               - name: elan200
-                locator: myloc2
-                micro_sid: true
+                locator: myloc1
+                micro_sid: false
                 vlan_id: 200
-                interface: ae10
+                interfaces:
+                - ae12
+                - ge-0/0/2
               - name: elan201
                 locator: myloc2
                 micro_sid: true
                 vlan_id: 201
-                interface: ae10
+                interfaces: 
+                - ae12
+                - ge-0/0/2
             vpws:
               - name: vpws100
                 locator: myloc1
@@ -72,25 +96,25 @@ all:
                 local_id: 1
                 remote_id: 2
                 vlan_id: 100
-                interface: ae10
+                interface: ae12
               - name: vpws101
                 locator: myloc1
                 local_id: 1
                 remote_id: 2
                 vlan_id: 101
-                interface: ae10
+                interface: ae12
             l3vpn:
               - name: l3vpn10
                 locator: myloc1
                 end_dt46_sid: "1111:1111:1111:10::"
-                interface: ge-0/0/3
+                interface: ge-0/0/2
                 vlan_id: 10
                 ipv4: "192.168.11.1/24"
                 ipv6: "::192:168:11:1/112"
               - name: l3vpn20
                 locator: myloc2
                 micro_dt46_sid: true
-                interface: ge-0/0/3
+                interface: ge-0/0/2
                 vlan_id: 20
                 ipv4: "192.168.21.1/24"
                 ipv6: "::192:168:21:1/112"
@@ -131,28 +155,52 @@ all:
             - iso
             members:
             - ge-0/0/0
+          srv6te:
+            segment_lists:
+            - name: "SL-to-PE3"
+              hops:
+              - name: P2
+                sid: "2222:2222:5555::"
+                micro_sid: true
+              - name: PE1
+                sid: "2222:2222:1111::"
+                micro_sid: true
+              - name: P1
+                sid: "2222:2222:4444::"
+                micro_sid: true
+              - name: PE3
+                sid: "2222:2222:3333::"
+                micro_sid: true
+            sr_paths:
+            - name: "to-PE3-myloc2"
+              to: "2222:2222:3333::"
+              primary: "SL-to-PE3"
           services:
             interfaces:
-            - name: ae10
+            - name: ae12
               mtu: 9192
               members:
-              - ge-0/0/2
-              esi_id: "00:01:02:00:00:00:00:00:10:00"
-              system_id: "00:00:00:00:10:00"
+              - ge-0/0/3
+              esi_id: "00:01:02:00:00:00:00:00:12:00"
+              system_id: "00:00:00:00:12:00"
               df_preference: 100
-            - name: ge-0/0/3
+            - name: ge-0/0/2
               mtu: 9192
             elan:
               - name: elan200
-                locator: myloc2
-                micro_sid: true
+                locator: myloc1
+                micro_sid: false
                 vlan_id: 200
-                interface: ae10
+                interfaces: 
+                - ae12
+                - ge-0/0/2
               - name: elan201
                 locator: myloc2
                 micro_sid: true
                 vlan_id: 201
-                interface: ae10
+                interfaces: 
+                - ae12
+                - ge-0/0/2
             vpws:
               - name: vpws100
                 locator: myloc1
@@ -160,30 +208,30 @@ all:
                 local_id: 1
                 remote_id: 2
                 vlan_id: 100
-                interface: ae10
+                interface: ae12
               - name: vpws101
                 locator: myloc1
                 local_id: 1
                 remote_id: 2
                 vlan_id: 101
-                interface: ae10
+                interface: ae12
             l3vpn:
               - name: l3vpn10
                 locator: myloc1
                 end_dt46_sid: "1111:1111:2222:10::"
-                interface: ge-0/0/3
+                interface: ge-0/0/2
                 vlan_id: 10
                 ipv4: "192.168.12.1/24"
                 ipv6: "::192:168:12:1/112"
               - name: l3vpn20
                 locator: myloc2
                 micro_dt46_sid: true
-                interface: ge-0/0/3
+                interface: ge-0/0/2
                 vlan_id: 20
                 ipv4: "192.168.22.1/24"
                 ipv6: "::192:168:22:1/112"
         pe3:
-          ansible_host: 172.20.20.5
+          ansible_host: 172.20.20.3
           bgp:
             asn: 65100
             groups:
@@ -221,21 +269,21 @@ all:
             - ge-0/0/1
           services:
             interfaces:
-            - name: ae20
+            - name: ge-0/0/2
               mtu: 9192
-              members:
-              - ge-0/0/2
             elan:
               - name: elan200
-                locator: myloc2
-                micro_sid: true
+                locator: myloc1
+                micro_sid: false
                 vlan_id: 200
-                interface: ae20
+                interfaces: 
+                - ge-0/0/2
               - name: elan201
                 locator: myloc2
                 micro_sid: true
                 vlan_id: 201
-                interface: ae20
+                interfaces:
+                - ge-0/0/2
             vpws:
               - name: vpws100
                 locator: myloc1
@@ -243,32 +291,32 @@ all:
                 local_id: 2
                 remote_id: 1
                 vlan_id: 100
-                interface: ae20
+                interface: ge-0/0/2
               - name: vpws101
                 locator: myloc1
                 local_id: 2
                 remote_id: 1
                 vlan_id: 101
-                interface: ae20
+                interface: ge-0/0/2
             l3vpn:
               - name: l3vpn10
                 locator: myloc1
                 end_dt46_sid: "1111:1111:3333:10::"
-                interface: ae20
+                interface: ge-0/0/2
                 vlan_id: 10
                 ipv4: "192.168.13.1/24"
                 ipv6: "::192:168:13:1/112"
               - name: l3vpn20
                 locator: myloc2
                 micro_dt46_sid: true
-                interface: ae20
+                interface: ge-0/0/2
                 vlan_id: 20
                 ipv4: "192.168.23.1/24"
                 ipv6: "::192:168:23:1/112"
     p:
       hosts:
         p1:
-          ansible_host: 172.20.20.4
+          ansible_host: 172.20.20.9
           lo0_v4: 1.1.0.4
           lo0_v6: 2001::1:1:0:4
           lo0_iso: "49.2001.0000.0101.0004.00"
@@ -277,6 +325,9 @@ all:
           - name: myloc1
             address: "1111:1111:4444::/48"
             end_sid: "1111:1111:4444::"
+          - name: myloc2
+            address: "2222:2222:4444::/48"
+            micro_sid: true
           interfaces:
           - name: ae0
             mtu: 9192
@@ -303,7 +354,7 @@ all:
             members:
             - ge-0/0/3
         p2:
-          ansible_host: 172.20.20.7
+          ansible_host: 172.20.20.10
           lo0_v4: 1.1.0.5
           lo0_v6: 2001::1:1:0:5
           lo0_iso: "49.2001.0000.0101.0005.00"
@@ -312,6 +363,9 @@ all:
           - name: myloc1
             address: "1111:1111:5555::/48"
             end_sid: "1111:1111:5555::"
+          - name: myloc2
+            address: "2222:2222:5555::/48"
+            micro_sid: true
           interfaces:
           - name: ae3
             mtu: 9192
@@ -340,13 +394,55 @@ all:
     ce:
       hosts:
         ce1:
-          ansible_host: 172.20.20.2
+          ansible_host: 172.20.20.7
           lo0_v4: 1.1.0.101
           lo0_v6: 2001::1:1:0:101
           lo0_iso: "49.2001.0000.0101.0101.00"
           type: junos
           interfaces:
-          - name: ae10
+          - name: ge-0/0/0
+            mtu: 9192
+            vlans:
+            - 10
+            - 20
+            - 200
+            - 201
+          vlans:
+          - name: vlan10
+            id: 10
+            ip_v4: "192.168.11.2/24"
+            ip_v6: "::192:168:11:2/112"
+          - name: vlan20
+            id: 20
+            ip_v4: "192.168.21.2/24"
+            ip_v6: "::192:168:21:2/112"
+          - name: vlan200
+            id: 200
+            ip_v4: "192.168.200.1/24"
+            ip_v6: "::192:168:200:1/112"
+          - name: vlan201
+            id: 201
+            ip_v4: "192.168.201.1/24"
+            ip_v6: "::192:168:201:1/112"
+          virtual_routers:
+          - name: VR10
+            v4_gw: "192.168.11.1"
+            v6_gw: "::192:168:11:1"
+            interfaces:
+            - irb.10
+          - name: VR20
+            v4_gw: "192.168.21.1"
+            v6_gw: "::192:168:21:1"
+            interfaces:
+            - irb.20
+        ce12:
+          ansible_host: 172.20.20.4
+          lo0_v4: 1.1.0.112
+          lo0_v6: 2001::1:1:0:112
+          lo0_iso: "49.2001.0000.0101.0112.00"
+          type: junos
+          interfaces:
+          - name: ae12
             mtu: 9192
             members:
             - ge-0/0/0
@@ -359,31 +455,71 @@ all:
           vlans:
           - name: vlan100
             id: 100
-            ip_v4: "192.168.100.1/24"
-            ip_v6: "2001::192:168:100:1/112"
+            ip_v4: "192.168.100.12/24"
+            ip_v6: "::192:168:100:12/112"
           - name: vlan101
             id: 101
-            ip_v4: "192.168.101.1/24"
-            ip_v6: "2001::192:168:101:1/112"
+            ip_v4: "192.168.101.12/24"
+            ip_v6: "::192:168:101:12/112"
           - name: vlan200
             id: 200
-            ip_v4: "192.168.200.1/24"
-            ip_v6: "2001::192:168:200:1/112"
+            ip_v4: "192.168.200.12/24"
+            ip_v6: "::192:168:200:12/112"
           - name: vlan201
             id: 201
-            ip_v4: "192.168.201.1/24"
-            ip_v6: "2001::192:168:201:1/112" 
+            ip_v4: "192.168.201.12/24"
+            ip_v6: "::192:168:201:12/112"
         ce2:
-          ansible_host: 172.20.20.3
+          ansible_host: 172.20.20.2
           lo0_v4: 1.1.0.102
           lo0_v6: 2001::1:1:0:102
           lo0_iso: "49.2001.0000.0101.0102.00"
           type: junos
           interfaces:
-          - name: ae20
+          - name: ge-0/0/0
             mtu: 9192
-            members:
-            - ge-0/0/0
+            vlans:
+            - 10
+            - 20
+            - 200
+            - 201
+          vlans:
+          - name: vlan10
+            id: 10
+            ip_v4: "192.168.12.2/24"
+            ip_v6: "::192:168:12:2/112"
+          - name: vlan20
+            id: 20
+            ip_v4: "192.168.22.2/24"
+            ip_v6: "::192:168:22:2/112"
+          - name: vlan200
+            id: 200
+            ip_v4: "192.168.200.2/24"
+            ip_v6: "::192:168:200:2/112"
+          - name: vlan201
+            id: 201
+            ip_v4: "192.168.201.2/24"
+            ip_v6: "::192:168:201:2/112"
+          virtual_routers:
+          - name: VR10
+            v4_gw: "192.168.12.1"
+            v6_gw: "::192:168:12:1"
+            interfaces:
+            - irb.10
+          - name: VR20
+            v4_gw: "192.168.22.1"
+            v6_gw: "::192:168:22:1"
+            interfaces:
+            - irb.20
+        ce3:
+          ansible_host: 172.20.20.5
+          lo0_v4: 1.1.0.103
+          lo0_v6: 2001::1:1:0:103
+          lo0_iso: "49.2001.0000.0101.0103.00"
+          type: junos
+          interfaces:
+          - name: ge-0/0/0
+            mtu: 9192
             vlans:
             - 10
             - 20
@@ -395,35 +531,35 @@ all:
           - name: vlan10
             id: 10
             ip_v4: "192.168.13.2/24"
-            ip_v6: "2001::192:168:13:2/112"
+            ip_v6: "::192:168:13:2/112"
           - name: vlan20
             id: 20
             ip_v4: "192.168.23.2/24"
-            ip_v6: "2001::192:168:23:2/112"
+            ip_v6: "::192:168:23:2/112"
           - name: vlan100
             id: 100
-            ip_v4: "192.168.100.2/24"
-            ip_v6: "2001::192:168:100:2/112"
+            ip_v4: "192.168.100.3/24"
+            ip_v6: "::192:168:100:3/112"
           - name: vlan101
             id: 101
-            ip_v4: "192.168.101.2/24"
-            ip_v6: "2001::192:168:101:2/112"
+            ip_v4: "192.168.101.3/24"
+            ip_v6: "::192:168:101:3/112"
           - name: vlan200
             id: 200
-            ip_v4: "192.168.200.2/24"
-            ip_v6: "2001::192:168:200:2/112"
+            ip_v4: "192.168.200.3/24"
+            ip_v6: "::192:168:200:3/112"
           - name: vlan201
             id: 201
-            ip_v4: "192.168.201.2/24"
-            ip_v6: "2001::192:168:201:2/112"
+            ip_v4: "192.168.201.3/24"
+            ip_v6: "::192:168:201:3/112"
           virtual_routers:
           - name: VR10
             v4_gw: "192.168.13.1"
-            v6_gw: "2001::192:168:13:1"
+            v6_gw: "::192:168:13:1"
             interfaces:
             - irb.10
           - name: VR20
             v4_gw: "192.168.23.1"
-            v6_gw: "2001::192:168:23:1"
+            v6_gw: "::192:168:23:1"
             interfaces:
             - irb.20
