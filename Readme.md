@@ -2,8 +2,8 @@
 
 ### Table of contents
 * [Topology](Readme.md#Topology)
-* [Core-facing interfaces](Readme.md#Core-facing interfaces)
-* [ISIS SRv6](Readme.md#ISIS SRv6)
+* [Core-facing interfaces](Readme.md#Core-facing-interfaces)
+* [ISIS SRv6](Readme.md#ISIS-SRv6)
 * [BGP](Readme.md#BGP)
 * [Services](Readme.md#Services)
   * [VPWS](Readme.md#VPWS)
