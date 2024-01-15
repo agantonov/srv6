@@ -6,7 +6,7 @@
 * [ISIS SRv6](Readme.md#ISIS-SRv6)
 * [BGP](Readme.md#BGP)
 * [Services](Readme.md#Services)
-  * [VPWS](Readme.md#VPWS)
+  * [EVPN VPWS](Readme.md#EVPN-VPWS)
 
 
 SRv6 is a new alternative to the traditinal MPLS services that operators have been using for decades. Here I want to demonstrate how to build virtual lab using Junos devices and configure the most popular services over SRv6 underlay.
