@@ -1,5 +1,8 @@
 protocols {
     bgp {
+        multipath {
+            list-nexthop;
+        }
 {% for group in bgp.groups %}
         group {{ group.name }} {
             type internal;

@@ -160,6 +160,7 @@ set protocols bgp group INTERNAL export vpws-nh-change
 set protocols bgp group INTERNAL neighbor 2001::1:1:0:1
 set protocols bgp group INTERNAL neighbor 2001::1:1:0:3
 set protocols bgp group INTERNAL vpn-apply-export
+set protocols bgp multipath list-nexthop
 set protocols isis interface ae2.0 level 2 post-convergence-lfa
 set protocols isis interface ae2.0 point-to-point
 set protocols isis interface ae3.0 level 2 post-convergence-lfa
@@ -173,7 +174,19 @@ set protocols isis level 2 wide-metrics-only
 set protocols isis backup-spf-options use-post-convergence-lfa maximum-backup-paths 8
 set protocols isis backup-spf-options use-source-packet-routing
 set protocols isis traffic-engineering l3-unicast-topology
+set protocols isis traffic-engineering ipv6
 set protocols isis traffic-engineering advertisement always
+set protocols isis no-ipv4-routing
+set protocols source-packet-routing segment-list SL-to-PE3 srv6
+set protocols source-packet-routing segment-list SL-to-PE3 P2 micro-srv6-sid 2222:2222:5555::
+set protocols source-packet-routing segment-list SL-to-PE3 PE1 micro-srv6-sid 2222:2222:1111::
+set protocols source-packet-routing segment-list SL-to-PE3 P1 micro-srv6-sid 2222:2222:4444::
+set protocols source-packet-routing segment-list SL-to-PE3 PE3 micro-srv6-sid 2222:2222:3333::
+set protocols source-packet-routing srv6
+set protocols source-packet-routing source-routing-path to-PE3-myloc2 srv6
+set protocols source-packet-routing source-routing-path to-PE3-myloc2 to 2222:2222:3333::
+set protocols source-packet-routing source-routing-path to-PE3-myloc2 from 2001::1:1:0:2
+set protocols source-packet-routing source-routing-path to-PE3-myloc2 primary SL-to-PE3
 set protocols lldp port-id-subtype interface-name
 set protocols lldp neighbour-port-info-display port-id
 set protocols lldp interface all
