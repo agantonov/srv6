@@ -11,15 +11,17 @@
   * [L3VPN](Readme.md#L3VPN)
 
 
-SRv6 is a new alternative to the traditinal MPLS services that operators have been using for decades. Here I want to demonstrate how to build virtual lab using Junos devices and configure the most popular services over SRv6 underlay.
+SRv6 is a new alternative to traditional MPLS services that operators have been using for decades. Here I'd like to demonstrate a way to build a virtual lab using Juniper devices and to configure the most popular services over SRv6 underlay.
 
 ### Topology
-The first step is to build a topology. You can go with physical devices if you have enough of them available or opt for a virtual lab, which is a more cost-effective option accessible to everyone. Nowadays, Juniper and most network vendors provide virtualized and containerized Network Operating Systems. In my lab I'm using virtual MX and virtual EX. Setting up all virtual machines manually can be time-consuming, especially for complex network topologies with a Network Operating System consisting of two VMs (vMX). However, we have the [Containterlab](https://containerlab.dev) project which simplifies the topology building process. 
+The first step is building a topology. You can go with physical devices if you have enough of them at your hand or opt for a virtual lab, which is a more cost-effective option available to anyone. Nowadays, Juniper and most network vendors provide virtualized and containerized Network Operating Systems. In my lab I'm using virtual MX and virtual EX. Setting up all virtual machines manually can be time-consuming, especially for complex network topologies with a Network Operating System consisting of two VMs (vMX). That is where the [Containterlab](https://containerlab.dev) project comes into play making the topology building process much easier. 
 
-To begin, we need to create containers from vMX and vEX images. This can be accomplished using [vrnetlab](https://containerlab.dev/manual/vrnetlab/) through the following steps:
+To begin with, we need to create containers from vMX and vEX images. This can be accomplished with the help of [vrnetlab](https://containerlab.dev/manual/vrnetlab/) through the following steps:
 * Clone the [vrnetlab](https://github.com/hellt/vrnetlab) project.
 * Download vMX and vEX images and copy them to the ``vrnetlab/vmx`` and ``vrnetlab/vjunosswitch`` folders, respectively.
-* Run ```make``` in each folder, and now you have the Docker images:
+* Run ```make``` in each folder.
+
+As a result, you have the following Docker images:
 ```
 $ sudo docker images
 REPOSITORY                  TAG            IMAGE ID       CREATED        SIZE
@@ -27,12 +29,12 @@ vrnetlab/vr-vjunosswitch    23.2R1.14      e64bbda0e0dc   3 days ago     4.36GB
 vrnetlab/vr-vmx             23.4R1.10      bb5ef5b27530   3 days ago     10.9GB
 ```
 
-Once we have docker images, we start building the actual topology. I'm going to deploy 3 PE-routers connected to 2 P-routers, each PE router has a CE device connected to it: PE1-CE1, PE2-CE2, PE3-CE3. In addition, there is a multihomed CE12 which is connected to both PE1 and PE2 with ae12 bundle. 
+Once the docker images are in place, you start building the actual topology. I'm going to deploy three PE routers connected to two P routers, each PE router having a CE device connected to it: PE1-CE1, PE2-CE2, PE3-CE3. In addition, there is a multihomed CE12 connected to both PE1 and PE2 with an ae12 bundle. 
 <img src="images/phys_topo.png">
 
 I created a container lab [topology file](https://github.com/agantonov/clab/blob/master/srv6-vmx.yml) where I specified Docker images and connections between containers. You can find more information about the syntax in the [user guide](https://containerlab.dev/manual/topo-def-file/). 
 
-Now, let's deploy the topology:
+Now let's deploy the topology:
 ```
 $ sudo containerlab deploy -t srv6-vmx.yml
 +---+----------------+--------------+------------------------------------+----------------------+---------+-----------------+----------------------+
@@ -49,10 +51,10 @@ $ sudo containerlab deploy -t srv6-vmx.yml
 | 9 | clab-srv6-pe3  | 8eada5d37273 | vrnetlab/vr-vmx:23.4R1.10          | juniper_vmx          | running | 172.20.20.3/24  | 2001:172:20:20::3/64 |
 +---+----------------+--------------+------------------------------------+----------------------+---------+-----------------+----------------------+
 ```
-The devices are up and running and now it's time to configure them:
+The devices are up and running and it's time to configure them:
 
 ### Core-facing interfaces
-Many operators use multiple links aggregated into LAGs for connections between routers in the core. I adhere to this approach and create ae0-ae6 LAGs between PE and P routers, despite having a single link in each bundle. Additionally, I configure family iso and family inet6; family inet and family mpls are not required. The typical core interface configuration is below:
+Many operators use multiple links aggregated into LAGs for connections between routers in the core. I follow this approach and create ``ae0``-``ae6`` LAGs between PE and P routers, although there is a single link in each bundle. Additionally, I'm configuring ``family iso`` and ``family inet6``; ``family inet`` and ``family mpls`` are not required. The typical core interface configuration is below:
 ```
 ae0 {
     description to-p1:ae0;
@@ -80,8 +82,8 @@ $ ansible-playbook -i inventory/srv6.yml playbook/interfaces.yml
 Configuration files (core_iface_ae.conf and core_iface_p2p.conf) for core-facing interfaces on all routers are available at this [link](https://github.com/agantonov/srv6/tree/main/playbook/tmp).
 
 ### ISIS SRv6
-First, we need to create locators which will be advertised by ISIS and used by PEs to forward VPN prefixes.
-PE1 locator configuration example:
+First, you need to create locators which will be advertised by ISIS and used by PEs to forward VPN prefixes.
+All PE routers are provisioned with two locators. For instance, PE1 has the following configuration:
 ```
 set routing-options source-packet-routing srv6 locator myloc1 1111:1111:1111::/48
 set routing-options source-packet-routing srv6 locator myloc2 2222:2222:1111::/48
@@ -90,7 +92,7 @@ set routing-options source-packet-routing srv6 locator myloc2 micro-sid
 **myloc1** is a locator for regular SIDs and **myloc2** is a locator for micro-SIDs. Detailed information about locators can be found in this [blog](https://community.juniper.net/blogs/krzysztof-szarkowicz/2022/06/29/srv6-basics-locator-and-end-sids) as well as in the [RFC8986](https://datatracker.ietf.org/doc/html/rfc8986#name-srv6-sid) and [draft-filsfils-spring-net-pgm-extension-srv6-usid](https://datatracker.ietf.org/doc/draft-filsfils-spring-net-pgm-extension-srv6-usid/).
 
 
-Next, we disable IPv4 routing and configure ISIS to advertise SRv6 locators:
+Next, you configure ISIS protocol on all core-facing interfaces, disable IPv4 routing and specify SRv6 locators which are to be advertised to the other PEs:
 ```
 pe1# show protocols isis| display set
 set protocols isis interface ae0.0 level 2 post-convergence-lfa
@@ -113,12 +115,12 @@ set protocols isis no-ipv4-routing
 
 You can configure ISIS on all routers with the following command:
 ```
-~/ansible$ ansible-playbook -i inventory/srv6.yml playbook/isis.yml
+$ ansible-playbook -i inventory/srv6.yml playbook/isis.yml
 ```
 
 ISIS configuration files (isis.conf) for all routers are available at this [link](https://github.com/agantonov/srv6/tree/main/playbook/tmp)
 
-ISIS is advertising and recieving IPv6 SIDs for all routers:
+ISIS is advertising to and recieving IPv6 SIDs from all routers:
 ```
 pe1# run show isis database extensive | match SID
     NLPID: 0x83, Fixed length: 27 bytes, Version: 1, Sysid length: 0 bytes
@@ -142,9 +144,10 @@ pe1# run show isis database extensive | match SID
       SRv6 micro-node-SID: 2222:2222:5555::, Flavor: PSP, USD
         Locator block length: 32, Locator node length: 16, SID function length: 0, SID argument length: 80
 ```
+You are finally done with the ISIS part.
 
 ### BGP
-BGP configuration is pretty streightforward. Since we have only three PEs in our network, we establish a full mesh of iBGP sessions and advertise evpn, inet-vpn and inet6-vpn prefixes. In a real network, you most likely will be using route reflectors. 
+BGP configuration is pretty straightforward. Since you have only three PEs in your network, you establish a full mesh of iBGP sessions and advertise evpn, inet-vpn and inet6-vpn prefixes. In a real network, you will most likely be using route reflectors. 
 
 PE1 BGP configuration is as follows:
 ```
@@ -215,7 +218,7 @@ Peer                     AS      InPkt     OutPkt    OutQ   Flaps Last Up/Dwn St
 Now everything is ready for services and the first service I'm going to deploy is EVPN-VPWS.
 
 #### EVPN VPWS
-EVPN VPWS over SRv6 configuration is documented [here](https://www.juniper.net/documentation/us/en/software/junos/evpn-vxlan/topics/concept/configuring-vpws-srv6.html).
+The official configuration guide for EVPN VPWS over SRv6 on Juniper devices is published [here](https://www.juniper.net/documentation/us/en/software/junos/evpn-vxlan/topics/concept/configuring-vpws-srv6.html).
 I have configured two evpn-vpws instances on all PE devices: 
 * vpws100 is provisioned with a static end-dx2-sid = 1111:1111:1111:100:: and provides P2P L2VPN service for CE12:ae12.100 and CE3:ge-0/0/0.100.
 * vpws101 is provisioned with a dynamic end-dx2-sid and provides P2P L2VPN service for CE12:ae12.101 and CE3:ge-0/0/0.101.
@@ -266,7 +269,7 @@ route-distinguisher 1.1.0.1:101;
 vrf-target target:65100:101;
 ```
 
-CE12 is connected to both PE1 and PE2 via the interface ae12 (LAG). This is possible because we configured an EVPN ESI LAG between PE1 and PE2.
+CE12 is connected to both PE1 and PE2 via the interface ae12 (LAG). This is possible because the EVPN ESI LAG has earlier been configured between PE1 and PE2 .
 ```
 set interfaces ae12 flexible-vlan-tagging
 set interfaces ae12 mtu 9192
@@ -285,9 +288,9 @@ set interfaces ae12 unit 101 encapsulation vlan-ccc
 set interfaces ae12 unit 101 vlan-id 101
 ```
 
-The similar VPWS configuration is deployed on PE3. The only difference is that the interface ge-0/0/2 towards CE3 does not have ESI and LACP configuration.
+The similar VPWS configuration is deployed on PE3. The only difference is that the interface ``ge-0/0/2`` towards CE3 does not need ESI and LACP configurations.
 
-We also need to configure the policy to set the protocol nexthop on the egress to point to the locator address. This enables the EVPN service to resolve the next-hop over SRv6 Tunnel on the ingress PE.
+You also have to configure a policy to set the protocol nexthop on the egress PE to point to the locator address. This ensures that the EVPN service can resolve the next-hop over SRv6 Tunnel on the ingress PE.
 ```
 set policy-options policy-statement vpws-nh-change term 1 from protocol evpn
 set policy-options policy-statement vpws-nh-change term 1 then next-hop 1111:1111:1111::
@@ -297,7 +300,7 @@ set protocols bgp group INTERNAL export vpws-nh-change
 set protocols bgp group INTERNAL vpn-apply-export
 ```
 
-You can configure VPWS instances on PE routers and IP addresses on CE devices with the following commands:
+You can configure VPWS instances on all PE routers and IP addresses on CE devices with the following commands:
 ```
 $ ansible-playbook -i inventory/srv6.yml playbook/vpws.yml
 $ ansible-playbook -i inventory/srv6.yml playbook/ce_interfaces.yml
@@ -350,7 +353,7 @@ Instance: vpws101, Instance type: EVPN VPWS, Encapsulation type: SRv6
             Advertised SID: 1
 ```
 For VPWS101 service, the End.Dx2 SID function is assigned dynamically: 8003 on PE1, 8000 on PE2 and 8000 on PE3. 
-We can check the ranges by issuing the following command:
+You can check the ranges by issuing the following command:
 
 ```
 pe1# run show srv6 locator myloc1
@@ -369,7 +372,7 @@ SID                                        SID-Owner     SID-Type      SID-Behav
 1111:1111:1111:8004::                      EVPN          DYNAMIC       End.DT2U
 1111:1111:1111:8005::                      EVPN          DYNAMIC       End.DT2M
 ```
-Let's take a look at what we receive via BGP.
+Let's take a look at what is received via BGP.
 ```
 pe1# run show route receive-protocol bgp 2001::1:1:0:3 table vpws100 extensive
 
@@ -465,7 +468,7 @@ vpws100.evpn.0: 4 destinations, 4 routes (4 active, 0 holddown, 0 hidden)
                                         Next hop: fe80::2e6b:f5ff:fe65:2fc4 via ae0.0
                                         Next hop: fe80::2e6b:f5ff:fe87:23c4 via ae1.0
 ``` 
-You can see that the next-hop is set to 1111:1111:3333::, router label = 256 (function 0x100) and the endpoint behavior is 21 which according to the [table](https://www.iana.org/assignments/segment-routing/segment-routing.xhtml) means End.DX2.
+You can see that the next-hop is set to 1111:1111:3333::, router label = 256 (function 0x100) and the endpoint behavior is 21 which means End.DX2 according to the [table](https://www.iana.org/assignments/segment-routing/segment-routing.xhtml).
 
 Egress routes are added in the table l2xc.0:
 ```
@@ -490,9 +493,9 @@ ae12.101           *[EVPN/7] 21:56:22
 
 ```
 
-Now we can run a ping between CE12 and CE3 and capture the traffic. Detailed information on how to capture traffic in the data plane can be found [here](https://containerlab.dev/manual/wireshark/)
+Now you can run a ping between CE12 and CE3 and capture the traffic. Detailed information on how to capture traffic in the data plane can be found [here](https://containerlab.dev/manual/wireshark/).
 
-PE1/PE2 encapsulate the original frames coming from CE12 into IPv6 using their loopbacks as a source and the SRv6 SID is the destination and forward IPv6 traffic through the core. Upon receiving the traffic with the DST SID = 1111:1111:3333:100::, PE3 looks up its routing table, pops the external IPv6 header and forwards the original frame to CE3.
+PE1/PE2 encapsulate the original frames coming from CE12 into IPv6 using their loopbacks as a source and the SRv6 SID as a destination, and forward IPv6 traffic through the core. Upon receiving the traffic with the DST SID = 1111:1111:3333:100::, the PE3 performs the action corresponding to End.DX2 SID, i.e. pops the external IPv6 header and forwards the original frame to CE3.
 
 <img src="images/vpws_traffic.png">
 
@@ -527,7 +530,7 @@ tcpdump: listening on eth3, link-type EN10MB (Ethernet), snapshot length 262144 
 19:35:33.551662 2c:6b:f5:20:05:f0 > 2c:6b:f5:b3:78:f0, ethertype 802.1Q (0x8100), length 102: vlan 100, p 0, ethertype IPv4 (0x0800), (tos 0x0, ttl 64, id 25532, offset 0, flags [none], proto ICMP (1), length 84)
     192.168.100.12 > 192.168.100.3: ICMP echo request, id 12621, seq 295, length 64
 ```
-L2 traffic is transparently forwarded through the IPv6 core.
+Thus, L2 traffic is transparently forwarded through the IPv6 core.
 
 #### EVPN ELAN
 I have configured two EVPN-ELAN instances (mac-vrf) on all PE routers: 
@@ -586,8 +589,8 @@ elan201 {
     vrf-target target:65100:201;
 }
 ```
-CE12 is connected to both PE1 and PE2 via the interface a12 (LAG) in the same manner as for EVPN VPWS service. 
-You can configure ELAN instances on PE routers and IP addresses on CE devices with the following commands:
+CE12 is connected to both PE1 and PE2 via the interface a12 (LAG) in the same manner as the EVPN VPWS service.
+You can configure ELAN instances on all PE routers and IP addresses on CE devices with the following commands:
 ```
 $ ansible-playbook -i inventory/srv6.yml playbook/elan.yml
 $ ansible-playbook -i inventory/srv6.yml playbook/ce_interfaces.yml
@@ -688,7 +691,7 @@ Instance: elan201
 ```
 
 End.DT2 micro-SID functions e002 (hex) for unicast and e003 (hex) for BUM traffic are assigned dynamically.
-We can check the ranges and assigned SIDs by issuing the following commands:
+You can check the ranges and assigned SIDs by issuing the following commands:
 
 **myloc1**
 ```
@@ -722,7 +725,7 @@ SID                                        SID-Owner     SID-Type      SID-Behav
 2222:2222:1111:e004::                      BGP           DYNAMIC       End.DT46 with NEXT-CSID
 ```
 
-Let's take a look at what we receive via BGP.
+Let's take a look at what is received via BGP.
 
 **ELAN200**
 ```
@@ -872,7 +875,7 @@ elan200.evpn.0: 21 destinations, 21 routes (21 active, 0 holddown, 0 hidden)
                                         Next hop: fe80::2e6b:f5ff:fe65:2fc4 via ae0.0
                                         Next hop: fe80::2e6b:f5ff:fe87:23c4 via ae1.0
 ```
-You can observe that the next-hop is set to 1111:1111:3333::, router label is 32769 (function 0x8001) and the endpoint behavior is 23 which, according to the [table](https://www.iana.org/assignments/segment-routing/segment-routing.xhtml), means End.DT2U.
+You can see that the next-hop is set to 1111:1111:3333::, router label is 32769 (function 0x8001) and the endpoint behavior is 23 which means End.DT2U according to the [table](https://www.iana.org/assignments/segment-routing/segment-routing.xhtml).
 
 MAC/IP entries are present in both ``mac-table`` and ``mac-ip-table``:
 ```
@@ -988,7 +991,7 @@ elan201.evpn.0: 16 destinations, 16 routes (16 active, 0 holddown, 0 hidden)
                                                 Next hop: fe80::2e6b:f5ff:fe65:2fc4 via ae0.0
                                                 Next hop: fe80::2e6b:f5ff:fe87:23c4 via ae1.0
 ```
-You can observe that the next-hop is set to 1111:1111:3333::, router label is 57346 (function 0xe002) and the endpoint behavior is 67 which, according to the [table](https://www.iana.org/assignments/segment-routing/segment-routing.xhtml), means End.DT2U with NEXT-CSID.
+You can see that the next-hop is set to 1111:1111:3333::, router label is 57346 (function 0xe002) and the endpoint behavior is 67 which means End.DT2U with NEXT-CSID according to the [table](https://www.iana.org/assignments/segment-routing/segment-routing.xhtml).
 
 MAC/IP entries are present in both ``mac-table`` and ``mac-ip-table``:
 ```
@@ -1030,10 +1033,10 @@ MAC IP flags  (S - Static, D - Dynamic, L - Local , R - Remote, Lp - Local Proxy
    ::192:168:201:1              2c:6b:f5:d1:cb:f0    DL,K,AD                   ge-0/0/2.201
 ```
 
-Upon receiving Ethernet frames from CEs, PE routers perform a lookup on th DST MAC, encapsulate the original Ethernet frame into IPv6 tunnels and forward them through the IPv6 core similar to the process demonstrated for EVPN-VPWS service.
+Upon receiving Ethernet frames from CEs, PE routers perform a lookup on the DST MAC, encapsulate the original Ethernet frame into IPv6 tunnel and forward them through the IPv6 core - similar to the process demonstrated above for EVPN-VPWS service. Thus, CE devices can communicate with each other within a single flat L2 domain.
 
 #### L3VPN
-L3VPN over SRv6 configuration is documented [here](https://www.juniper.net/documentation/en_US/junos/topics/example/bgp-configuring-layer3-services-over-srv6.html). I have configured two L3VPN instances:
+The official configuration guide for L3VPN over SRv6 on Juniper devices is published [here](https://www.juniper.net/documentation/en_US/junos/topics/example/bgp-configuring-layer3-services-over-srv6.html). I have configured two L3VPN instances:
 
 * l3vpn10 is provisioned with a static end-dt46-sid = 1111:1111:1111:10:: and provides L3VPN service for CE1:ge-0/0/0.10, CE2:ge-0/0/0.10 and CE3:ge-0/0/0.10.
 * l3vpn20 is provisioned with a dynamic micro-sid end-dt46-sid and provides L3VPN service for CE1:ge-0/0/0.20, CE2:ge-0/0/0.20 and CE3:ge-0/0/0.20.
@@ -1080,7 +1083,7 @@ l3vpn20 {
 }
 ```
 CE1 is connected to PE1, CE2 to PE2, and CE3 to PE3.  
-You can configure L3VPN instances on PE routers and IP addresses and default routes on CE devices with the following commands:
+You can configure L3VPN instances on all PE routers and IP addresses and default routes on CE devices with the following commands:
 ```
 $ ansible-playbook -i inventory/srv6.yml playbook/l3vpn.yml
 $ ansible-playbook -i inventory/srv6.yml playbook/ce_interfaces.yml
@@ -1118,7 +1121,7 @@ l3vpn10.inet6.0: 6 destinations, 6 routes (6 active, 0 holddown, 0 hidden)
      Communities: target:65100:10
                 SRv6 SID: 1111:1111:1111:: Service tlv type: 5 Behavior: 20 BL: 48 NL: 0 FL: 16 AL: 0 TL: 16 TO: 48
 ```
-You can see ``Route Label: 256`` in the update and it does **not** look like a decimal representation of the statically assigned End.DT46 SID function = 0x10. The trick is that the SRv6 function occupies the first 16 out of 20 bits reserved for the VPN label. This mechanism is called *Transposition* and it is perfectly described in this [blog](https://community.juniper.net/blogs/krzysztof-szarkowicz/2022/12/02/srv6-sid-encoding-and-transposition). If we put 0x10 bits into the label space of the NLRI, aligning to the left and putting ‘0’ in place of these moved bits, we will get **0x100** in the HEX format which is equal to **256** in the DEC format. The endpoint behavior is 20, which according to the table](https://www.iana.org/assignments/segment-routing/segment-routing.xhtml), means End.DT46.
+You can see ``Route Label: 256`` in the BGP update and it does **not** look like a decimal representation of a statically assigned End.DT46 SID function = 0x10. The trick is that the SRv6 function occupies the first 16 out of 20 bits reserved for the VPN label. This mechanism is called *Transposition* and it is explained in great detail in this [blog](https://community.juniper.net/blogs/krzysztof-szarkowicz/2022/12/02/srv6-sid-encoding-and-transposition). If you put 0x10 bits into the label space of the NLRI, aligning to the left and putting ‘0’ in place of these shifted bits, you will get **0x100** in the HEX format which is equal to **256** in the DEC format. The endpoint behavior is 20 which means End.DT46 according to the table](https://www.iana.org/assignments/segment-routing/segment-routing.xhtml).
 
 **l3vpn20**
 ```
@@ -1149,7 +1152,7 @@ l3vpn20.inet6.0: 6 destinations, 6 routes (6 active, 0 holddown, 0 hidden)
      Communities: target:65100:20
                 SRv6 SID: 2222:2222:1111:: Service tlv type: 5 Behavior: 64 BL: 32 NL: 16 FL: 16 AL: 0 TL: 16 TO: 48
 ```
-First of all, let's figure out what end-dt46-sid function is allocated to l3vpn20.
+First of all, let's figure out which end-dt46-sid function is allocated to ``l3vpn20``.
 ```
 pe1# run show srv6 locator myloc2
 Locator: myloc2
@@ -1162,7 +1165,7 @@ SID                                        SID-Owner     SID-Type      SID-Behav
 2222:2222:1111:e003::                      EVPN          DYNAMIC       End.DT2M with NEXT-CSID
 2222:2222:1111:e004::                      BGP           DYNAMIC       End.DT46 with NEXT-CSID
 ```
-The end-dt46-sid function is 0xe004. Taking into account the transposition mechanism described above, the VPN label in the HEX format will be 0xe0040. If we convert it to the DEC format we get 917568, the number seen in the VPN Label field. The endpoint behavior is 64 which according to the [table](https://www.iana.org/assignments/segment-routing/segment-routing.xhtml) means End.DT46 with NEXT-CSID.
+The end-dt46-sid function is 0xe004. Based on the *transposition* mechanism described above, the VPN label in the HEX format will be 0xe0040. If you convert it to the DEC format you get 917568, the number seen in the VPN Label field. The endpoint behavior is 64 which means End.DT46 with NEXT-CSID according to the [table](https://www.iana.org/assignments/segment-routing/segment-routing.xhtml).
 
 Now let's check the routing table:
 ```
@@ -1288,4 +1291,4 @@ tcpdump: listening on eth3, link-type EN10MB (Ethernet), snapshot length 262144 
     192.168.11.2 > 192.168.13.2: ICMP echo request, id 39251, seq 289, length 64
 ```
 
-We demonstrated that L2 and L3 services work fine over SRv6 core without MPLS. How about traffic engineering (TE), another important MPLS feature? Of course, SRv6 technology supports TE. Let's explore how it works in the next chapter (coming soon).
+It has been succesfully demonstrated that L2 and L3 services can work smoothly over SRv6 core without MPLS. You may wonder about traffic engineering (TE), another important MPLS feature. Indeed, the SRv6 technology does support TE. Let's explore how it works in the next chapter (coming soon).
