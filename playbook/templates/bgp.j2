@@ -40,6 +40,10 @@ protocols {
     }
 }
 routing-options {
+    transport-class {
+        auto-create;
+    }
     router-id {{ lo0_v4 }};
     autonomous-system {{ bgp.asn }};
+    route-distinguisher-id {{ lo0_v4 }};
 }

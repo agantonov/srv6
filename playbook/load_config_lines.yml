@@ -1,6 +1,6 @@
 ---
 - name: "Configure Juniper Devices" 
-  hosts: all:!ce
+  hosts: pe
   connection: juniper.device.pyez
   gather_facts: no
 
@@ -8,6 +8,7 @@
     - name: "Base config"
       junos_config:
         lines:
-          - "delete interfaces ae0"
+          - "delete routing-instances l3vpn10"
+          - "delete routing-instances l3vpn20"
       register: result
       diff: true

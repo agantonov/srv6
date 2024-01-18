@@ -66,9 +66,31 @@ set interfaces lo0 unit 0 family inet address 1.1.0.3/32 primary
 set interfaces lo0 unit 0 family iso address 49.2001.0000.0101.0003.00
 set interfaces lo0 unit 0 family inet6 address 2001::1:1:0:3/128 primary
 set policy-options policy-statement LB then load-balance per-flow
+set policy-options policy-statement l3vpn10_export term 1 from route-filter 192.168.13.0/24 exact
+set policy-options policy-statement l3vpn10_export term 1 then community add color_1_comm
+set policy-options policy-statement l3vpn10_export term 2 from route-filter ::192:168:13:0/112 exact
+set policy-options policy-statement l3vpn10_export term 2 then community add color_2_comm
+set policy-options policy-statement l3vpn10_export term default then community add l3vpn10_comm
+set policy-options policy-statement l3vpn10_export term default then accept
+set policy-options policy-statement l3vpn10_export then community add l3vpn10_comm
+set policy-options policy-statement l3vpn10_export then accept
+set policy-options policy-statement l3vpn10_import from community l3vpn10_comm
+set policy-options policy-statement l3vpn10_import then accept
+set policy-options policy-statement l3vpn20_export term 1 from route-filter 192.168.23.0/24 exact
+set policy-options policy-statement l3vpn20_export term 1 then community add color_1_comm
+set policy-options policy-statement l3vpn20_export term 2 from route-filter ::192:168:23:0/112 exact
+set policy-options policy-statement l3vpn20_export term 2 then community add color_2_comm
+set policy-options policy-statement l3vpn20_export term default then community add l3vpn20_comm
+set policy-options policy-statement l3vpn20_export term default then accept
+set policy-options policy-statement l3vpn20_import from community l3vpn20_comm
+set policy-options policy-statement l3vpn20_import then accept
 set policy-options policy-statement vpws-nh-change term 1 from protocol evpn
 set policy-options policy-statement vpws-nh-change term 1 then next-hop 1111:1111:3333::
 set policy-options policy-statement vpws-nh-change term 1 then accept
+set policy-options community color_1_comm members color:0:1
+set policy-options community color_2_comm members color:0:2
+set policy-options community l3vpn10_comm members target:65100:10
+set policy-options community l3vpn20_comm members target:65100:20
 set routing-instances elan200 instance-type mac-vrf
 set routing-instances elan200 protocols evpn encapsulation srv6
 set routing-instances elan200 protocols evpn source-packet-routing srv6 locator myloc1
@@ -93,12 +115,14 @@ set routing-instances l3vpn10 instance-type vrf
 set routing-instances l3vpn10 protocols bgp source-packet-routing srv6 locator myloc1 end-dt46-sid 1111:1111:3333:10::
 set routing-instances l3vpn10 interface ge-0/0/2.10
 set routing-instances l3vpn10 route-distinguisher 1.1.0.3:10
-set routing-instances l3vpn10 vrf-target target:65100:10
+set routing-instances l3vpn10 vrf-import l3vpn10_import
+set routing-instances l3vpn10 vrf-export l3vpn10_export
 set routing-instances l3vpn20 instance-type vrf
 set routing-instances l3vpn20 protocols bgp source-packet-routing srv6 locator myloc2 micro-dt46-sid
 set routing-instances l3vpn20 interface ge-0/0/2.20
 set routing-instances l3vpn20 route-distinguisher 1.1.0.3:20
-set routing-instances l3vpn20 vrf-target target:65100:20
+set routing-instances l3vpn20 vrf-import l3vpn20_import
+set routing-instances l3vpn20 vrf-export l3vpn20_export
 set routing-instances mgmt_junos routing-options static route 0.0.0.0/0 next-hop 10.0.0.2
 set routing-instances mgmt_junos description management-instance
 set routing-instances vpws100 instance-type evpn-vpws
@@ -122,9 +146,11 @@ set routing-options source-packet-routing srv6 locator myloc1 1111:1111:3333::/4
 set routing-options source-packet-routing srv6 locator myloc2 2222:2222:3333::/48
 set routing-options source-packet-routing srv6 locator myloc2 micro-sid
 set routing-options source-packet-routing srv6 no-reduced-srh
+set routing-options route-distinguisher-id 1.1.0.3
 set routing-options resolution preserve-nexthop-hierarchy
 set routing-options router-id 1.1.0.3
 set routing-options autonomous-system 65100
+set routing-options transport-class auto-create
 set routing-options forwarding-table srv6-chain-merge
 set routing-options forwarding-table export LB
 set protocols bgp group INTERNAL type internal
@@ -157,6 +183,8 @@ set protocols isis traffic-engineering l3-unicast-topology
 set protocols isis traffic-engineering ipv6
 set protocols isis traffic-engineering advertisement always
 set protocols isis no-ipv4-routing
+set protocols source-packet-routing preserve-nexthop-hierarchy
+set protocols source-packet-routing use-transport-class
 set protocols lldp port-id-subtype interface-name
 set protocols lldp neighbour-port-info-display port-id
 set protocols lldp interface all

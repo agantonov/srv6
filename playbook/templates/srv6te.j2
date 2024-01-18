@@ -20,12 +20,16 @@ protocols {
 {% endfor %}
 {% endif %}
         srv6;
+        preserve-nexthop-hierarchy;
 {% if srv6te.sr_paths is defined %}
 {% for path in srv6te.sr_paths %}
         source-routing-path {{ path.name }} {
             srv6;
             to {{ path.to }};
             from {{ lo0_v6 }};
+{% if path.color is defined %}
+            color {{ path.color }};
+{% endif %}
 {% if path.primary is defined %}
             primary {
                 {{ path.primary }};
@@ -34,6 +38,7 @@ protocols {
         }
 {% endfor %}
 {% endif %}
+        use-transport-class;
     }
 }
 {% endif %}

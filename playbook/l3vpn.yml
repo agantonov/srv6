@@ -15,7 +15,7 @@
       file:
           path: "{{ config_dir }}"
           state: directory
-      run_once: yes
+      run_once: false
 
     - name: Build L3VPN Service Configuration
       template: src="l3vpn.j2" dest={{ config_filename }}

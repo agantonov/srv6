@@ -17,8 +17,8 @@ interfaces {
     }
 {% endfor %}
 }
-routing-instances {
 {% for l3vpn in services.l3vpn %}
+routing-instances {
     {{ l3vpn.name }} {
         instance-type vrf;
         protocols {
@@ -38,7 +38,44 @@ routing-instances {
         }
         interface {{ l3vpn.interface }}.{{ l3vpn.vlan_id }};
         route-distinguisher {{ lo0_v4 }}:{{ l3vpn.vlan_id }};
-        vrf-target target:{{ bgp.asn }}:{{ l3vpn.vlan_id }};
+        vrf-export {{ l3vpn.name }}_export;
+        vrf-import {{ l3vpn.name }}_import;
     }
-{% endfor %}
 }
+policy-options {
+    policy-statement {{ l3vpn.name }}_export {
+{% if l3vpn.colors is defined %}
+{% for color in l3vpn.colors %}
+        term {{ loop.index }} {
+{% if color.prefixes is defined %}
+            from {
+{% for prefix in color.prefixes %}
+                route-filter {{ prefix }} exact;
+{% endfor %}
+            }
+{% endif %}
+            then {
+                community add color_{{ color.id }}_comm;
+            }
+        }
+{% endfor %}
+{% endif %}
+        term default {
+            then {
+                community add {{ l3vpn.name }}_comm;
+                accept;
+            }
+        }
+    }
+    policy-statement {{ l3vpn.name }}_import {
+        from community {{ l3vpn.name }}_comm;
+        then accept;
+    }
+    community {{ l3vpn.name }}_comm members target:{{ bgp.asn }}:{{ l3vpn.vlan_id }};
+{% if l3vpn.colors is defined %}
+{% for color in l3vpn.colors %}
+    community color_{{ color.id }}_comm members color:0:{{ color.id }};
+{% endfor %}
+{% endif %}
+}
+{% endfor %}

@@ -45,24 +45,73 @@ all:
             - ge-0/0/1
           srv6te:
             segment_lists:
-            - name: "SL-to-PE3"
+            - name: "SL-P1->PE2->P2->PE3-loc1"
+              hops:
+              - name: P1
+                sid: "1111:1111:4444::"
+                micro_sid: false
+              - name: PE2
+                sid: "1111:1111:2222::"
+                micro_sid: false
+              - name: P2
+                sid: "1111:1111:5555::"
+                micro_sid: false
+              - name: PE3
+                sid: "1111:1111:3333::"
+                micro_sid: false
+            - name: "SL-P2->P1->PE3-loc1"
+              hops:
+              - name: P2
+                sid: "1111:1111:5555::"
+                micro_sid: false
+              - name: P1
+                sid: "1111:1111:4444::"
+                micro_sid: false
+              - name: PE3
+                sid: "1111:1111:3333::"
+                micro_sid: false
+            - name: "SL-P1->PE2->P2->PE3-loc2"
               hops:
               - name: P1
                 sid: "2222:2222:4444::"
-                micro_sid: false
+                micro_sid: true
               - name: PE2
                 sid: "2222:2222:2222::"
-                micro_sid: false
+                micro_sid: true
               - name: P2
                 sid: "2222:2222:5555::"
-                micro_sid: false
+                micro_sid: true
               - name: PE3
                 sid: "2222:2222:3333::"
-                micro_sid: false
+                micro_sid: true
+            - name: "SL-P2->P1->PE3-loc2"
+              hops:
+              - name: P2
+                sid: "2222:2222:5555::"
+                micro_sid: true
+              - name: P1
+                sid: "2222:2222:4444::"
+                micro_sid: true
+              - name: PE3
+                sid: "2222:2222:3333::"
+                micro_sid: true
             sr_paths:
-            - name: "to-PE3-myloc2"
+            - name: "to-PE3-myloc1-color1"
+              to: "1111:1111:3333::"
+              primary: "SL-P1->PE2->P2->PE3-loc1"
+              color: 1
+            - name: "to-PE3-myloc1-color2"
+              to: "1111:1111:3333::"
+              primary: "SL-P2->P1->PE3-loc1"
+              color: 2
+            - name: "to-PE3-myloc2-color1"
               to: "2222:2222:3333::"
-              primary: "SL-to-PE3"
+              primary: "SL-P1->PE2->P2->PE3-loc2"
+              color: 1
+            - name: "to-PE3-myloc2-color2"
+              to: "2222:2222:3333::"
+              primary: "SL-P2->P1->PE3-loc2"
+              color: 2
           services:
             interfaces:
             - name: ae12
@@ -111,6 +160,13 @@ all:
                 vlan_id: 10
                 ipv4: "192.168.11.1/24"
                 ipv6: "::192:168:11:1/112"
+                colors:
+                - id: 1
+                  prefixes:
+                  - "192.168.11.0/24"
+                - id: 2
+                  prefixes:
+                  - "::192:168:11:0/112"
               - name: l3vpn20
                 locator: myloc2
                 micro_dt46_sid: true
@@ -118,6 +174,13 @@ all:
                 vlan_id: 20
                 ipv4: "192.168.21.1/24"
                 ipv6: "::192:168:21:1/112"
+                colors:
+                - id: 1
+                  prefixes:
+                  - "192.168.21.0/24"
+                - id: 2
+                  prefixes:
+                  - "::192:168:21:0/112"
         pe2:
           ansible_host: 172.20.20.6
           bgp:
@@ -223,6 +286,13 @@ all:
                 vlan_id: 10
                 ipv4: "192.168.12.1/24"
                 ipv6: "::192:168:12:1/112"
+                colors:
+                - id: 1
+                  prefixes:
+                  - "192.168.12.0/24"
+                - id: 2
+                  prefixes:
+                  - "::192:168:12:0/112"
               - name: l3vpn20
                 locator: myloc2
                 micro_dt46_sid: true
@@ -230,6 +300,13 @@ all:
                 vlan_id: 20
                 ipv4: "192.168.22.1/24"
                 ipv6: "::192:168:22:1/112"
+                colors:
+                - id: 1
+                  prefixes:
+                  - "192.168.22.0/24"
+                - id: 2
+                  prefixes:
+                  - "::192:168:22:0/112"
         pe3:
           ansible_host: 172.20.20.3
           bgp:
@@ -306,6 +383,13 @@ all:
                 vlan_id: 10
                 ipv4: "192.168.13.1/24"
                 ipv6: "::192:168:13:1/112"
+                colors:
+                - id: 1
+                  prefixes:
+                  - "192.168.13.0/24"
+                - id: 2
+                  prefixes:
+                  - "::192:168:13:0/112"
               - name: l3vpn20
                 locator: myloc2
                 micro_dt46_sid: true
@@ -313,6 +397,13 @@ all:
                 vlan_id: 20
                 ipv4: "192.168.23.1/24"
                 ipv6: "::192:168:23:1/112"
+                colors:
+                - id: 1
+                  prefixes:
+                  - "192.168.23.0/24"
+                - id: 2
+                  prefixes:
+                  - "::192:168:23:0/112"
     p:
       hosts:
         p1:
