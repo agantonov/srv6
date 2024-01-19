@@ -15,7 +15,7 @@
       file:
           path: "{{ config_dir }}"
           state: directory
-      run_once: yes
+      run_once: false
 
     - name: Build SRv6 TE Configuration
       template: src="srv6te.j2" dest={{ config_filename }}
