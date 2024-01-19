@@ -60,7 +60,7 @@
       file:
           path: "{{ config_dir }}"
           state: directory
-      run_once: yes
+      run_once: false
 
     - name: Build ISIS Configuration
       template: src="isis.j2" dest={{ config_filename }}
@@ -80,7 +80,7 @@
       file:
           path: "{{ config_dir }}"
           state: directory
-      run_once: yes
+      run_once: false
 
     - name: Build BGP Configuration
       template: src="bgp.j2" dest={{ config_filename }}
@@ -100,7 +100,7 @@
       file:
           path: "{{ config_dir }}"
           state: directory
-      run_once: yes
+      run_once: false
 
     - name: Build VPWS Service Configuration
       template: src="vpws.j2" dest={{ config_filename }}
@@ -120,7 +120,7 @@
       file:
           path: "{{ config_dir }}"
           state: directory
-      run_once: yes
+      run_once: false
 
     - name: Build ELAN Service Configuration
       template: src="elan.j2" dest={{ config_filename }}
@@ -140,7 +140,7 @@
       file:
           path: "{{ config_dir }}"
           state: directory
-      run_once: yes
+      run_once: false
 
     - name: Build L3VPN Service Configuration
       template: src="l3vpn.j2" dest={{ config_filename }}

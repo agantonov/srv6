@@ -72,8 +72,6 @@ set policy-options policy-statement l3vpn10_export term 2 from route-filter ::19
 set policy-options policy-statement l3vpn10_export term 2 then community add color_2_comm
 set policy-options policy-statement l3vpn10_export term default then community add l3vpn10_comm
 set policy-options policy-statement l3vpn10_export term default then accept
-set policy-options policy-statement l3vpn10_export then community add l3vpn10_comm
-set policy-options policy-statement l3vpn10_export then accept
 set policy-options policy-statement l3vpn10_import from community l3vpn10_comm
 set policy-options policy-statement l3vpn10_import then accept
 set policy-options policy-statement l3vpn20_export term 1 from route-filter 192.168.23.0/24 exact
@@ -183,8 +181,6 @@ set protocols isis traffic-engineering l3-unicast-topology
 set protocols isis traffic-engineering ipv6
 set protocols isis traffic-engineering advertisement always
 set protocols isis no-ipv4-routing
-set protocols source-packet-routing preserve-nexthop-hierarchy
-set protocols source-packet-routing use-transport-class
 set protocols lldp port-id-subtype interface-name
 set protocols lldp neighbour-port-info-display port-id
 set protocols lldp interface all
