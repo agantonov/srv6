@@ -9,7 +9,7 @@
   * [EVPN VPWS](Readme.md#EVPN-VPWS)
   * [EVPN ELAN](Readme.md#EVPN-ELAN)
   * [L3VPN](Readme.md#L3VPN)
-* [Traffic Engineering](Readme.md#SRv6-TE)
+* [Traffic Engineering](Readme.md#SRv6-Traffic-Engineering)
   * [Regular SRH](Readme.md#Regular-SRH)
   * [Compressed SRH](Readme.md#Compressed-SRH)
 
@@ -120,7 +120,7 @@ You can configure ISIS on all routers with the following command:
 $ ansible-playbook -i inventory/srv6.yml playbook/isis.yml
 ```
 
-ISIS configuration files (isis.conf) for all routers are available at this [link](https://github.com/agantonov/srv6/tree/main/playbook/tmp)
+ISIS configuration files (isis.conf) for all routers are available at this [link](https://github.com/agantonov/srv6/tree/main/playbook/tmp).
 
 ISIS is advertising to and recieving IPv6 SIDs from all routers:
 ```
@@ -172,7 +172,7 @@ You can configure BGP on all routers with the following command:
 $ ansible-playbook -i inventory/srv6.yml playbook/bgp.yml
 ```
 
-BGP configuration files (bgp.conf) for all routers are available at this [link](https://github.com/agantonov/srv6/tree/main/playbook/tmp)
+BGP configuration files (bgp.conf) for all routers are available at this [link](https://github.com/agantonov/srv6/tree/main/playbook/tmp).
 
 All BGP sessions are established:
 ```
@@ -1295,7 +1295,7 @@ tcpdump: listening on eth3, link-type EN10MB (Ethernet), snapshot length 262144 
 
 It has been succesfully demonstrated that L2 and L3 services can work smoothly over SRv6 core without MPLS. You may wonder about traffic engineering (TE), another important MPLS feature. Indeed, the SRv6 technology does support TE. Let's explore how it works in the next chapter.
 
-#### SRv6-TE
+### SRv6 Traffic Engineering
 The SRv6 TE technology enables steering of traffic along predefined paths as opposed to relying on a best-effort approach. This functionality is laid out in Chapter 10 of the [DayOne SRv6 book](https://www.juniper.net/documentation/en_US/day-one-books/DayOne-Intro-SRv6.pdf). In a real network, you will most likely be using a controller for configuring SRv6 TE paths via PCEP. However, for the purposes of this demo, I'm going to focus on static SRv6 TE colored tunnels. 
 
 Before proceeding with the path configuration, it is mandatory to execute the following commands on the PE routers (MX):
@@ -1324,7 +1324,7 @@ set routing-options forwarding-table srv6-chain-merge
 set routing-options source-packet-routing srv6 no-reduced-srh
 ```
 
-##### Regular SRH
+#### Regular SRH
 The concept of Segment Routing Header (SRH) and Segment Lists(SL) is described in [RFC8986](https://datatracker.ietf.org/doc/html/rfc8986).
 Let's configure two colored SRv6-TE paths from PE1 to PE3 locator **myloc1**:
 ```
@@ -1551,6 +1551,7 @@ Let's take a look at what is happening in the data plane. Run an IPv4 ping from 
 <img src="images/srte_myloc1_color1.png">
 
 1\. PE1:ge-0/0/2
+
 PE1 receives an IPv4 packet from CE1.
 ```
 $ sudo ip netns exec clab-srv6-pe1 tcpdump -nvvvei eth3
@@ -1560,6 +1561,7 @@ tcpdump: listening on eth3, link-type EN10MB (Ethernet), snapshot length 262144 
 ```
 
 2\. PE1:ae0
+
 PE1 encapsulates the original IPv4 packet into IPv6 header with SRH containing a segment list, sets DST IPv6 to ``1111:1111:4444::`` (P1) and forwards the packet via ae0.
 ```
 $ sudo ip netns exec clab-srv6-pe1 tcpdump -nvvvei eth1 ether proto 0x86dd
@@ -1568,6 +1570,7 @@ tcpdump: listening on eth1, link-type EN10MB (Ethernet), snapshot length 262144 
 ```
 
 3\. P1:ae2
+
 P1 receives the packet with SRH, copies the next segment ``[2]1111:1111:2222::`` to the DST IPv6, decrement the *segleft* counter by one and forwards the packet via interface ae2 to PE2.
 ```
 $ sudo ip netns exec clab-srv6-p1 tcpdump -nvvvei eth2 ether proto 0x86dd
@@ -1577,6 +1580,7 @@ tcpdump: listening on eth2, link-type EN10MB (Ethernet), snapshot length 262144 
 ```
 
 4\. PE2:ae3
+
 PE2 receives the packet with SRH, copies the next segment ``[1]1111:1111:5555::`` to the DST IPv6, decrements the *segleft* counter by one and forwards the packet via interface ae3 to P2. 
 ```
 $ sudo ip netns exec clab-srv6-pe2 tcpdump -nvvvei eth1 ether proto 0x86dd
@@ -1586,6 +1590,7 @@ tcpdump: listening on eth1, link-type EN10MB (Ethernet), snapshot length 262144 
 ```
 
 5\. P2:ae6
+
 P2 receives the packet with SRH, copies the next segment ``[0]1111:1111:3333:10::`` to the DST IPv6 field, decrements *segleft* counter by one, understands that **segleft=0**, removes the SRH header and forwards the packet via interface ae6 to PE3 according to its routing table.
 ```
 $ sudo ip netns exec clab-srv6-p2 tcpdump -nvvvei eth4 ether proto 0x86dd
@@ -1595,6 +1600,7 @@ tcpdump: listening on eth4, link-type EN10MB (Ethernet), snapshot length 262144 
 ```
 
 6\. PE3:ge-0/0/2
+
 Upon receiving the traffic with the DST SID = ``1111:1111:3333:10::``, PE3 performs the action corresponding to End.DT46 SID, i.e. pops the external IPv6 header, looks up the routing table in ``l3vpn10`` instance and forwards the IPv4 packet to CE3.
 ```
 $ sudo ip netns exec clab-srv6-pe3 tcpdump -nvvvei eth3
@@ -1608,6 +1614,7 @@ Now, run an IPv6 ping from CE1 to CE3 and capture the traffic:
 <img src="images/srte_myloc1_color2.png">
 
 1\. PE1:ge-0/0/2
+
 PE1 receives an IPv6 packet from CE1.
 ```
 $ sudo ip netns exec clab-srv6-pe1 tcpdump -nvvvei eth3
@@ -1616,6 +1623,7 @@ tcpdump: listening on eth3, link-type EN10MB (Ethernet), snapshot length 262144 
 ```
 
 2\. PE1:ae1
+
 PE1 encapsulates the original IPv6 packet into IPv6 header with SRH containing a segment list, sets DST IPv6 to ``1111:1111:5555::`` (P2) and forwards the packet via ae1.
 ```
 $ sudo ip netns exec clab-srv6-pe1 tcpdump -nvvvei eth2 ether proto 0x86dd
@@ -1624,6 +1632,7 @@ tcpdump: listening on eth2, link-type EN10MB (Ethernet), snapshot length 262144 
 ```
 
 3\. P2:ae4
+
 P2 receives the packet with SRH, copies the next segment ``[1]1111:1111:4444::`` to the DST IPv6, decrements *segleft* counter by one and forwards the packet via interface ae4 to P1. 
 ```
 $ sudo ip netns exec clab-srv6-p2 tcpdump -nvvvei eth3 ether proto 0x86dd
@@ -1632,6 +1641,7 @@ tcpdump: listening on eth3, link-type EN10MB (Ethernet), snapshot length 262144 
 ```
 
 4\. P1:ae5
+
 P1 receives the packet with SRH, copies the next segment ``[0]1111:1111:3333:10::`` to the DST IPv6, decrements *segleft* counter by one, understands that **segleft=0**, removes the SRH header and forwards the packet via interface ae5 to PE3 according to its routing table.
 ```
 $ sudo ip netns exec clab-srv6-p1 tcpdump -nvvvei eth4 ether proto 0x86dd
@@ -1640,6 +1650,7 @@ tcpdump: listening on eth4, link-type EN10MB (Ethernet), snapshot length 262144 
 ```
 
 5\. PE3: ge-0/0/2
+
 Upon receiving the traffic with the DST SID = ``1111:1111:3333:10::``, PE3 performs the action corresponding to End.DT46 SID, i.e. pops the external IPv6 header, looks up the routing table in ``l3vpn10`` instance and forwards the original IPv6 packet to CE3.
 ```
 $ sudo ip netns exec clab-srv6-pe3 tcpdump -nvvvei eth3
@@ -1649,7 +1660,7 @@ tcpdump: listening on eth3, link-type EN10MB (Ethernet), snapshot length 262144 
 
 It has been demonstrated that SRv6-TE provides flexible tools for steering traffic in your network. In the next section, I'd like to showcase the optimization of the segment list within the SRH header.
 
-##### Compressed SRH
+#### Compressed SRH
 The concept of compressed segment routing header (SRH) is described in [draft-ietf-spring-srv6-srh-compression-11](https://datatracker.ietf.org/doc/html/draft-ietf-spring-srv6-srh-compression-11).
 Let's configure two colored SRv6-TE paths from PE1 to PE3 locator **myloc2**:
 ```
@@ -1914,6 +1925,7 @@ Let's take a look at what is happening in the data plane. Run an IPv4 ping from 
 <img src="images/srte_myloc2_color1.png">
 
 1\. PE1:ge-0/0/2
+
 PE1 receives an IPv4 packet from CE1.
 ```
 $ sudo ip netns exec clab-srv6-pe1 tcpdump -nvvvei eth3
@@ -1923,6 +1935,7 @@ tcpdump: listening on eth3, link-type EN10MB (Ethernet), snapshot length 262144 
 ```
 
 2\. PE1:ae0
+
 PE1 encapsulates the original IPv4 packet into an IPv6 header with SRH which contains a segment list with two segments. The segment ``[0]2222:2222:3333:e005::`` represents the egress PE3 SID for the L3VPN instance while ``[1]2222:2222:4444:2222:5555::`` is a 'compressed' SID. It consists of a locator block 2222:2222 (32 bits) followed by micro-SIDs (16 bits each) encoding the path to the destination. PE1 sets DST IPv6 to ``2222:2222:4444:2222:5555::`` and forwards the packet via ae0 to P1 because it is P1 that is advertising the SID ``2222:2222:4444::/48``.
 ```
 $ sudo ip netns exec clab-srv6-pe1 tcpdump -nvvvei eth1 ether proto 0x86dd
@@ -1932,6 +1945,7 @@ tcpdump: listening on eth1, link-type EN10MB (Ethernet), snapshot length 262144 
 ```
 
 3\. P1:ae2
+
 P1 receives the packet with SRH, recognises its local micro-SID *4444*, removes the local micro-SID from the DST IPv6 address and shifts left the remaining micro-sids (``2222:2222:4444:2222:5555:: -> 2222:2222:2222:5555::``). The *segleft* counter in the SRH remains unchanged. Then, P1 forwards the packet via interface ae2 to PE2 because it is PE2 that is advertising the SID ``2222:2222:2222::/48``.
 ```
 $ sudo ip netns exec clab-srv6-p1 tcpdump -nvvvei eth2 ether proto 0x86dd
@@ -1941,6 +1955,7 @@ tcpdump: listening on eth2, link-type EN10MB (Ethernet), snapshot length 262144 
 ```
 
 4\. PE2:ae3
+
 PE2 receives the packet with SRH, recognises its local micro-SID *2222*, removes the local micro-SID from the DST IPv6 address and shifts left the remaining micro-sids (``2222:2222:2222:5555:: -> 2222:2222:5555::``). The *segleft* counter in the SRH remains unchanged. Then, PE2 forwards the packet via interface ae3 to P2 because it is P2 that is advertising the SID ``2222:2222:5555::/48``.
 ```
 $ sudo ip netns exec clab-srv6-pe2 tcpdump -nvvvei eth1 ether proto 0x86dd
@@ -1950,6 +1965,7 @@ tcpdump: listening on eth1, link-type EN10MB (Ethernet), snapshot length 262144 
 ```
 
 5\. P2:ae6
+
 P2 receives the packet with SRH, recognises its local micro-SID *5555*, removes the local micro-SID from the DST IPv6 address and understands that no micro-sids are left. Then, it copies the next segment from the SRH to DST IPv6 and decrements the *segleft* counter in the SRH by one. Since *segleft* is now '0', the SRH header is removed. The packet is forwarded via interface ae3 to P2 because it is P2 that is advertising the SID ``2222:2222:3333::/48``.
 ```
 $ sudo ip netns exec clab-srv6-p2 tcpdump -nvvvei eth4 ether proto 0x86dd
@@ -1959,6 +1975,7 @@ tcpdump: listening on eth4, link-type EN10MB (Ethernet), snapshot length 262144 
 ```
 
 6\. PE3:ge-0/0/2
+
 Upon receiving the traffic with the DST SID = ``1111:1111:3333:e005::``, PE3 performs the action corresponding to End.DT46 with NEXT-CSID, i.e. pops the external IPv6 header, looks up the routing table in ``l3vpn20`` instance and forwards the IPv4 packet to CE3.
 ```
 $ sudo ip netns exec clab-srv6-pe3 tcpdump -nvvvei eth3
@@ -1972,6 +1989,7 @@ Now, run an IPv6 ping from CE1 to CE3 and capture the traffic:
 <img src="images/srte_myloc2_color2.png">
 
 1\. PE1:ge-0/0/2
+
 PE1 receives an IPv6 packet from CE1.
 ```
 $ sudo ip netns exec clab-srv6-pe1 tcpdump -nvvvei eth3
@@ -1980,6 +1998,7 @@ tcpdump: listening on eth3, link-type EN10MB (Ethernet), snapshot length 262144 
 ```
 
 2\. PE1:ae1
+
 PE1 encapsulates the original IPv6 packet into an IPv6 header with SRH which contains a segment list with two segments. The segment ``[0]2222:2222:3333:e005::`` represents the egress PE3 SID for the L3VPN instance while ``[1]2222:2222:5555:4444::`` is a 'compressed' SID. It consists of a locator block 2222:2222 (32 bits) followed by micro-SIDs (16 bits each) encoding the path to the destination. PE1 sets DST IPv6 to ``2222:2222:5555:4444::`` and forwards the packet via ae1 to P2 because it is P2 that is advertising the SID ``2222:2222:5555::/48``.
 ```
 $ sudo ip netns exec clab-srv6-pe1 tcpdump -nvvvei eth2 ether proto 0x86dd
@@ -1988,6 +2007,7 @@ tcpdump: listening on eth2, link-type EN10MB (Ethernet), snapshot length 262144 
 ```
 
 3\. P2:ae4
+
 P2 receives the packet with SRH, recognises its local micro-SID *5555*, removes the local micro-SID from the DST IPv6 address and shifts left the remaining micro-sids (``2222:2222:5555:4444:: -> 2222:2222:4444::``). The *segleft* counter in the SRH remains unchanged. Then, P2 forwards the packet via interface ae4 to P1 because it is P1 that is advertising the SID ``2222:2222:4444::/48``.
 ```
 $ sudo ip netns exec clab-srv6-p2 tcpdump -nvvvei eth3 ether proto 0x86dd
@@ -1996,6 +2016,7 @@ tcpdump: listening on eth3, link-type EN10MB (Ethernet), snapshot length 262144 
 ```
 
 4\. P1:ae5
+
 P2 receives the packet with SRH, recognises its local micro-SID *4444*, removes the local micro-SID from the DST IPv6 address and understands that no micro-sids are left. Then, it copies the next segment from the SRH to DST IPv6 and decrements the *segleft* counter in the SRH by one. Since *segleft* is now '0', the SRH header is removed. The packet is forwarded via interface ae5 to PE3 because it is PE3 that is advertising the SID ``2222:2222:3333::/48``.
 ```
 $ sudo ip netns exec clab-srv6-p1 tcpdump -nvvvei eth4 ether proto 0x86dd
@@ -2004,6 +2025,7 @@ tcpdump: listening on eth4, link-type EN10MB (Ethernet), snapshot length 262144 
 ```
 
 5\. PE3: ge-0/0/2
+
 Upon receiving the traffic with the DST SID = ``1111:1111:3333:e005::``, PE3 performs the action corresponding to End.DT46 with NEXT-CSID, i.e. pops the external IPv6 header, looks up the routing table in ``l3vpn20`` instance and forwards the original IPv6 packet to CE3.
 ```
 $ sudo ip netns exec clab-srv6-pe3 tcpdump -nvvvei eth3
