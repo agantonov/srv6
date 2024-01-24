@@ -9,7 +9,9 @@
   * [EVPN VPWS](Readme.md#EVPN-VPWS)
   * [EVPN ELAN](Readme.md#EVPN-ELAN)
   * [L3VPN](Readme.md#L3VPN)
-
+* [Traffic Engineering](Readme.md#SRv6-TE)
+  * [Regular SRH](Readme.md#Regular-SRH)
+  * [Compressed SRH](Readme.md#Compressed-SRH)
 
 SRv6 is a new alternative to traditional MPLS services that operators have been using for decades. Here I'd like to demonstrate a way to build a virtual lab using Juniper devices and to configure the most popular services over SRv6 underlay.
 
@@ -305,7 +307,7 @@ You can configure VPWS instances on all PE routers and IP addresses on CE device
 $ ansible-playbook -i inventory/srv6.yml playbook/vpws.yml
 $ ansible-playbook -i inventory/srv6.yml playbook/ce_interfaces.yml
 ```
-VPWS configuration files (vpws.conf) for all routers are available at this [link](https://github.com/agantonov/srv6/tree/main/playbook/tmp)
+VPWS configuration files (vpws.conf) for all routers are available at this [link](https://github.com/agantonov/srv6/tree/main/playbook/tmp).
 
 Now let's check the service on the routers:
 ```
@@ -1121,7 +1123,7 @@ l3vpn10.inet6.0: 6 destinations, 6 routes (6 active, 0 holddown, 0 hidden)
      Communities: target:65100:10
                 SRv6 SID: 1111:1111:1111:: Service tlv type: 5 Behavior: 20 BL: 48 NL: 0 FL: 16 AL: 0 TL: 16 TO: 48
 ```
-You can see ``Route Label: 256`` in the BGP update and it does **not** look like a decimal representation of a statically assigned End.DT46 SID function = 0x10. The trick is that the SRv6 function occupies the first 16 out of 20 bits reserved for the VPN label. This mechanism is called *Transposition* and it is explained in great detail in this [blog](https://community.juniper.net/blogs/krzysztof-szarkowicz/2022/12/02/srv6-sid-encoding-and-transposition). If you put 0x10 bits into the label space of the NLRI, aligning to the left and putting ‘0’ in place of these shifted bits, you will get **0x100** in the HEX format which is equal to **256** in the DEC format. The endpoint behavior is 20 which means End.DT46 according to the table](https://www.iana.org/assignments/segment-routing/segment-routing.xhtml).
+You can see ``Route Label: 256`` in the BGP update and it does **not** look like a decimal representation of a statically assigned End.DT46 SID function = 0x10. The trick is that the SRv6 function occupies the first 16 out of 20 bits reserved for the VPN label. This mechanism is called *Transposition* and it is explained in great detail in this [blog](https://community.juniper.net/blogs/krzysztof-szarkowicz/2022/12/02/srv6-sid-encoding-and-transposition). If you put 0x10 bits into the label space of the NLRI, aligning to the left and putting ‘0’ in place of these shifted bits, you will get **0x100** in the HEX format which is equal to **256** in the DEC format. The endpoint behavior is 20 which means End.DT46 according to the [table](https://www.iana.org/assignments/segment-routing/segment-routing.xhtml).
 
 **l3vpn20**
 ```
@@ -1291,4 +1293,733 @@ tcpdump: listening on eth3, link-type EN10MB (Ethernet), snapshot length 262144 
     192.168.11.2 > 192.168.13.2: ICMP echo request, id 39251, seq 289, length 64
 ```
 
-It has been succesfully demonstrated that L2 and L3 services can work smoothly over SRv6 core without MPLS. You may wonder about traffic engineering (TE), another important MPLS feature. Indeed, the SRv6 technology does support TE. Let's explore how it works in the next chapter (coming soon).
+It has been succesfully demonstrated that L2 and L3 services can work smoothly over SRv6 core without MPLS. You may wonder about traffic engineering (TE), another important MPLS feature. Indeed, the SRv6 technology does support TE. Let's explore how it works in the next chapter.
+
+#### SRv6-TE
+The SRv6 TE technology enables steering of traffic along predefined paths as opposed to relying on a best-effort approach. This functionality is laid out in Chapter 10 of the [DayOne SRv6 book](https://www.juniper.net/documentation/en_US/day-one-books/DayOne-Intro-SRv6.pdf). In a real network, you will most likely be using a controller for configuring SRv6 TE paths via PCEP. However, for the purposes of this demo, I'm going to focus on static SRv6 TE colored tunnels. 
+
+Before proceeding with the path configuration, it is mandatory to execute the following commands on the PE routers (MX):
+* Specify preserve nexthop hierarchy support for SR-TE routes.
+```
+set protocols source-packet-routing preserve-nexthop-hierarchy
+```
+* Specify SRv6 support for SR-TE policies.
+```
+set protocols source-packet-routing srv6
+```
+* Enable transport class on SR-TE colored policies.
+```
+set protocols source-packet-routing use-transport-class
+```
+* Auto create transport class based on color discovery.
+```
+set routing-options transport-class auto-create
+```
+* SRv6 TE to merge its own SID stack with IGP’s stack.
+```
+set routing-options forwarding-table srv6-chain-merge
+```
+* Preserve the entire SID list in the SRH.
+```
+set routing-options source-packet-routing srv6 no-reduced-srh
+```
+
+##### Regular SRH
+The concept of Segment Routing Header (SRH) and Segment Lists(SL) is described in [RFC8986](https://datatracker.ietf.org/doc/html/rfc8986).
+Let's configure two colored SRv6-TE paths from PE1 to PE3 locator **myloc1**:
+```
+pe1# show protocols source-packet-routing
+segment-list SL-P1->PE2->P2->PE3-loc1 {
+    srv6;
+    P1 srv6-sid 1111:1111:4444::;
+    PE2 srv6-sid 1111:1111:2222::;
+    P2 srv6-sid 1111:1111:5555::;
+    PE3 srv6-sid 1111:1111:3333::;
+}
+segment-list SL-P2->P1->PE3-loc1 {
+    srv6;
+    P2 srv6-sid 1111:1111:5555::;
+    P1 srv6-sid 1111:1111:4444::;
+    PE3 srv6-sid 1111:1111:3333::;
+}
+source-routing-path to-PE3-myloc1-color1 {
+    srv6;
+    to 1111:1111:3333::;
+    from 2001::1:1:0:1;
+    color 1;
+    primary {
+        SL-P1->PE2->P2->PE3-loc1;
+    }
+}
+source-routing-path to-PE3-myloc1-color2 {
+    srv6;
+    to 1111:1111:3333::;
+    from 2001::1:1:0:1;
+    color 2;
+    primary {
+        SL-P2->P1->PE3-loc1;
+    }
+}
+```
+You can configure SRv6-TE paths with the following command:
+```
+$ ansible-playbook -i inventory/srv6.yml playbook/srv6te.yml
+```
+Both SR paths, **to-PE3-myloc1-color1** and **to-PE3-myloc1-color2**, point to the SID **1111:1111:3333::** as an endpoint but use different colors and segment-lists. The actual traffic flows for each SR-TE path are given in the diagram below.
+
+<img src="images/srte_myloc1.png">
+
+You can check the status of SR-TE paths with the following commands:
+```
+pe1# run show spring-traffic-engineering lsp detail
+Name: to-PE3-myloc1-color1
+  Tunnel-source: Static configuration
+  Tunnel Forward Type: SRV6
+  To: 1111:1111:3333::-1<c6>
+  From: 2001::1:1:0:1
+  State: Up
+    Path: SL-P1->PE2->P2->PE3-loc1
+    Path Status: NA
+    Outgoing interface: NA
+    Auto-translate status: Disabled Auto-translate result: N/A
+    Compute Status:Disabled , Compute Result:N/A , Compute-Profile Name:N/A
+    BFD status: N/A BFD name: N/A
+    BFD remote-discriminator: N/A
+    Segment ID : 128
+    ERO Valid: true
+      SR-ERO hop count: 4
+        Hop 1 (Loose):
+          NAI: None
+          SID type: srv6-sid, Value: 1111:1111:4444::
+        Hop 2 (Loose):
+          NAI: None
+          SID type: srv6-sid, Value: 1111:1111:2222::
+        Hop 3 (Loose):
+          NAI: None
+          SID type: srv6-sid, Value: 1111:1111:5555::
+        Hop 4 (Loose):
+          NAI: None
+          SID type: srv6-sid, Value: 1111:1111:3333::
+
+Name: to-PE3-myloc1-color2
+  Tunnel-source: Static configuration
+  Tunnel Forward Type: SRV6
+  To: 1111:1111:3333::-2<c6>
+  From: 2001::1:1:0:1
+  State: Up
+    Path: SL-P2->P1->PE3-loc1
+    Path Status: NA
+    Outgoing interface: NA
+    Auto-translate status: Disabled Auto-translate result: N/A
+    Compute Status:Disabled , Compute Result:N/A , Compute-Profile Name:N/A
+    BFD status: N/A BFD name: N/A
+    BFD remote-discriminator: N/A
+    Segment ID : 128
+    ERO Valid: true
+      SR-ERO hop count: 3
+        Hop 1 (Loose):
+          NAI: None
+          SID type: srv6-sid, Value: 1111:1111:5555::
+        Hop 2 (Loose):
+          NAI: None
+          SID type: srv6-sid, Value: 1111:1111:4444::
+        Hop 3 (Loose):
+          NAI: None
+          SID type: srv6-sid, Value: 1111:1111:3333::
+
+
+Total displayed LSPs: 2 (Up: 2, Down: 0)
+```
+
+Junos automatically creates a special routing table for each color and installs SR-TE path in the corresponding table based on the configured color.
+
+**color 1**
+```
+pe1# run show route table junos-rti-tc-1.inet6.3
+
+junos-rti-tc-1.inet6.3: 1 destinations, 1 routes (1 active, 0 holddown, 0 hidden)
++ = Active Route, - = Last Active, * = Both
+
+1111:1111:3333::/128
+                   *[SPRING-TE/8] 21:48:48, metric 1, metric2 20
+                    >  to fe80::2e6b:f5ff:fe65:2fc4 via ae0.0, SRV6-Tunnel, Dest: 1111:1111:3333::-1<c6>
+                    >  to fe80::2e6b:f5ff:fe87:23c4 via ae1.0, SRV6-Tunnel, Dest: 1111:1111:3333::-1<c6>
+
+[edit]
+pe1# run show route table junos-rti-tc-1.inet6.3 extensive | match "SRV6-Tunnel|Src|Segment-list"
+        Next hop: via Chain Tunnel Composite, SRv6 (src 2001::1:1:0:1 dest 1111:1111:3333::-1<c6>)
+        SRV6-Tunnel: Non-Reduced-SRH Encap-mode Remove-Last-Sid
+         Src: 2001::1:1:0:1 Dest: 1111:1111:3333::-1<c6>
+         Segment-list[0] 1111:1111:4444::
+         Segment-list[1] 1111:1111:2222::
+         Segment-list[2] 1111:1111:5555::
+         Segment-list[3] 1111:1111:3333::
+...
+```
+**color 2**
+```
+pe1# run show route table junos-rti-tc-2.inet6.3
+
+junos-rti-tc-2.inet6.3: 1 destinations, 1 routes (1 active, 0 holddown, 0 hidden)
++ = Active Route, - = Last Active, * = Both
+
+1111:1111:3333::/128
+                   *[SPRING-TE/8] 21:49:55, metric 1, metric2 20
+                    >  to fe80::2e6b:f5ff:fe87:23c4 via ae1.0, SRV6-Tunnel, Dest: 1111:1111:3333::-2<c6>
+                    >  to fe80::2e6b:f5ff:fe65:2fc4 via ae0.0, SRV6-Tunnel, Dest: 1111:1111:3333::-2<c6>
+
+[edit]
+pe1# run show route table junos-rti-tc-2.inet6.3 extensive | match "SRV6-Tunnel|Src|Segment-list"
+        Next hop: via Chain Tunnel Composite, SRv6 (src 2001::1:1:0:1 dest 1111:1111:3333::-2<c6>)
+        SRV6-Tunnel: Non-Reduced-SRH Encap-mode Remove-Last-Sid
+         Src: 2001::1:1:0:1 Dest: 1111:1111:3333::-2<c6>
+         Segment-list[0] 1111:1111:5555::
+         Segment-list[1] 1111:1111:4444::
+         Segment-list[2] 1111:1111:3333::
+...
+```
+Now, configure PE1 to select which of the two SRv6-TE tunnels to use for traffic forwarding to PE3. This is where the BGP color community comes into play. Assign **color 1** to IPv4 prefixes and **color 2** to IPv6 prefixes advertised by PE3 from the ``l3vpn10`` routing-instance. 
+
+```
+set policy-options policy-statement l3vpn10_export term 1 from route-filter 192.168.13.0/24 exact
+set policy-options policy-statement l3vpn10_export term 1 then community add color_1_comm
+set policy-options policy-statement l3vpn10_export term 2 from route-filter ::192:168:13:0/112 exact
+set policy-options policy-statement l3vpn10_export term 2 then community add color_2_comm
+set policy-options policy-statement l3vpn10_export term default then community add l3vpn10_comm
+set policy-options policy-statement l3vpn10_export term default then accept
+set policy-options policy-statement l3vpn10_import from community l3vpn10_comm
+set policy-options policy-statement l3vpn10_import then accept
+set policy-options community color_1_comm members color:0:1
+set policy-options community color_2_comm members color:0:2
+set policy-options community l3vpn10_comm members target:65100:10
+set routing-instances l3vpn10 vrf-import l3vpn10_import
+set routing-instances l3vpn10 vrf-export l3vpn10_export
+```
+Ensure that PE1 is receiving VPN routes with the color community assigned.
+```
+pe1# run show route receive-protocol bgp 2001::1:1:0:3 table l3vpn10 extensive
+
+l3vpn10.inet.0: 4 destinations, 4 routes (4 active, 0 holddown, 0 hidden)
+* 192.168.13.0/24 (1 entry, 1 announced)
+     Import Accepted MultiNexthop
+     Route Distinguisher: 1.1.0.3:10
+     VPN Label: 256
+     Nexthop: 2001::1:1:0:3
+     Localpref: 100
+     AS path: I
+     Communities: target:65100:10 color:0:1
+                SRv6 SID: 1111:1111:3333:: Service tlv type: 5 Behavior: 20 BL: 48 NL: 0 FL: 16 AL: 0 TL: 16 TO: 48
+
+l3vpn10.inet6.0: 6 destinations, 6 routes (6 active, 0 holddown, 0 hidden)
+
+* ::192:168:13:0/112 (1 entry, 1 announced)
+     Import Accepted MultiNexthop
+     Route Distinguisher: 1.1.0.3:10
+     VPN Label: 256
+     Nexthop: 2001::1:1:0:3
+     Localpref: 100
+     AS path: I
+     Communities: target:65100:10 color:0:2
+                SRv6 SID: 1111:1111:3333:: Service tlv type: 5 Behavior: 20 BL: 48 NL: 0 FL: 16 AL: 0 TL: 16 TO: 48
+```
+
+PE1 installs both IPv4 and IPv6 routes into corresponding tables and uses a colored SRv6-TE tunnel as a next-hop. 
+```
+pe1# run show route 192.168.13.0/24 table l3vpn10
+
+l3vpn10.inet.0: 4 destinations, 4 routes (4 active, 0 holddown, 0 hidden)
++ = Active Route, - = Last Active, * = Both
+
+192.168.13.0/24    *[BGP/170] 21:20:23, localpref 100, from 2001::1:1:0:3
+                      AS path: I, validation-state: unverified
+                    >  to fe80::2e6b:f5ff:fe65:2fc4 via ae0.0, SRv6 SID: 1111:1111:3333:10::, SRV6-Tunnel, Dest: 1111:1111:3333::-1<c6>
+                    >  to fe80::2e6b:f5ff:fe87:23c4 via ae1.0, SRv6 SID: 1111:1111:3333:10::, SRV6-Tunnel, Dest: 1111:1111:3333::-1<c6>
+
+[edit]
+pe1# run show route ::192:168:13:0/112 table l3vpn10
+
+l3vpn10.inet6.0: 6 destinations, 6 routes (6 active, 0 holddown, 0 hidden)
++ = Active Route, - = Last Active, * = Both
+
+::192:168:13:0/112 *[BGP/170] 21:20:15, localpref 100, from 2001::1:1:0:3
+                      AS path: I, validation-state: unverified
+                    >  to fe80::2e6b:f5ff:fe87:23c4 via ae1.0, SRv6 SID: 1111:1111:3333:10::, SRV6-Tunnel, Dest: 1111:1111:3333::-2<c6>
+                    >  to fe80::2e6b:f5ff:fe65:2fc4 via ae0.0, SRv6 SID: 1111:1111:3333:10::, SRV6-Tunnel, Dest: 1111:1111:3333::-2<c6>
+```
+Let's take a look at what is happening in the data plane. Run an IPv4 ping from CE1 to CE3 and capture the traffic:
+
+<img src="images/srte_myloc1_color1.png">
+
+1\. PE1:ge-0/0/2
+PE1 receives an IPv4 packet from CE1.
+```
+$ sudo ip netns exec clab-srv6-pe1 tcpdump -nvvvei eth3
+tcpdump: listening on eth3, link-type EN10MB (Ethernet), snapshot length 262144 bytes
+10:26:27.817701 2c:6b:f5:d1:cb:f0 > 0c:00:1e:e9:6e:03, ethertype 802.1Q (0x8100), length 102: vlan 10, p 0, ethertype IPv4 (0x0800), (tos 0x0, ttl 64, id 63799, offset 0, flags [none], proto ICMP (1), length 84)
+    192.168.11.2 > 192.168.13.2: ICMP echo request, id 10601, seq 23, length 64
+```
+
+2\. PE1:ae0
+PE1 encapsulates the original IPv4 packet into IPv6 header with SRH containing a segment list, sets DST IPv6 to ``1111:1111:4444::`` (P1) and forwards the packet via ae0.
+```
+$ sudo ip netns exec clab-srv6-pe1 tcpdump -nvvvei eth1 ether proto 0x86dd
+tcpdump: listening on eth1, link-type EN10MB (Ethernet), snapshot length 262144 bytes
+10:27:11.132705 2c:6b:f5:e6:4e:c3 > 2c:6b:f5:65:2f:c4, ethertype IPv6 (0x86dd), length 210: (flowlabel 0x88feb, hlim 255, next-header Routing (43) payload length: 156) 2001::1:1:0:1 > 1111:1111:4444::: RT6 (len=8, type=4, segleft=3, last-entry=3, flags=0x0, tag=0, [0]1111:1111:3333:10::, [1]1111:1111:5555::, [2]1111:1111:2222::, [3]1111:1111:4444::) (tos 0x0, ttl 63, id 65301, offset 0, flags [none], proto ICMP (1), length 84)
+```
+
+3\. P1:ae2
+P1 receives the packet with SRH, copies the next segment ``[2]1111:1111:2222::`` to the DST IPv6, decrement the *segleft* counter by one and forwards the packet via interface ae2 to PE2.
+```
+$ sudo ip netns exec clab-srv6-p1 tcpdump -nvvvei eth2 ether proto 0x86dd
+tcpdump: listening on eth2, link-type EN10MB (Ethernet), snapshot length 262144 bytes
+10:28:36.716479 2c:6b:f5:65:2f:c5 > 2c:6b:f5:29:63:c3, ethertype IPv6 (0x86dd), length 210: (flowlabel 0x88feb, hlim 254, next-header Routing (43) payload length: 156) 2001::1:1:0:1 > 1111:1111:2222::: RT6 (len=8, type=4, segleft=2, last-entry=3, flags=0x0, tag=0, [0]1111:1111:3333:10::, [1]1111:1111:5555::, [2]1111:1111:2222::, [3]1111:1111:4444::) (tos 0x0, ttl 63, id 2739, offset 0, flags [none], proto ICMP (1), length 84)
+    192.168.11.2 > 192.168.13.2: ICMP echo request, id 10601, seq 151, length 64
+```
+
+4\. PE2:ae3
+PE2 receives the packet with SRH, copies the next segment ``[1]1111:1111:5555::`` to the DST IPv6, decrements the *segleft* counter by one and forwards the packet via interface ae3 to P2. 
+```
+$ sudo ip netns exec clab-srv6-pe2 tcpdump -nvvvei eth1 ether proto 0x86dd
+tcpdump: listening on eth1, link-type EN10MB (Ethernet), snapshot length 262144 bytes
+10:29:29.035998 2c:6b:f5:29:63:c4 > 2c:6b:f5:87:23:c5, ethertype IPv6 (0x86dd), length 210: (flowlabel 0x88feb, hlim 253, next-header Routing (43) payload length: 156) 2001::1:1:0:1 > 1111:1111:5555::: RT6 (len=8, type=4, segleft=1, last-entry=3, flags=0x0, tag=0, [0]1111:1111:3333:10::, [1]1111:1111:5555::, [2]1111:1111:2222::, [3]1111:1111:4444::) (tos 0x0, ttl 63, id 4570, offset 0, flags [none], proto ICMP (1), length 84)
+    192.168.11.2 > 192.168.13.2: ICMP echo request, id 10601, seq 203, length 64
+```
+
+5\. P2:ae6
+P2 receives the packet with SRH, copies the next segment ``[0]1111:1111:3333:10::`` to the DST IPv6 field, decrements *segleft* counter by one, understands that **segleft=0**, removes the SRH header and forwards the packet via interface ae6 to PE3 according to its routing table.
+```
+$ sudo ip netns exec clab-srv6-p2 tcpdump -nvvvei eth4 ether proto 0x86dd
+tcpdump: listening on eth4, link-type EN10MB (Ethernet), snapshot length 262144 bytes
+10:29:56.191682 2c:6b:f5:87:23:c7 > 2c:6b:f5:aa:54:c3, ethertype IPv6 (0x86dd), length 138: (flowlabel 0x88feb, hlim 252, next-header IPIP (4) payload length: 84) 2001::1:1:0:1 > 1111:1111:3333:10::: (tos 0x0, ttl 63, id 5507, offset 0, flags [none], proto ICMP (1), length 84)
+    192.168.11.2 > 192.168.13.2: ICMP echo request, id 10601, seq 230, length 64
+```
+
+6\. PE3:ge-0/0/2
+Upon receiving the traffic with the DST SID = ``1111:1111:3333:10::``, PE3 performs the action corresponding to End.DT46 SID, i.e. pops the external IPv6 header, looks up the routing table in ``l3vpn10`` instance and forwards the IPv4 packet to CE3.
+```
+$ sudo ip netns exec clab-srv6-pe3 tcpdump -nvvvei eth3
+tcpdump: listening on eth3, link-type EN10MB (Ethernet), snapshot length 262144 bytes
+10:31:06.691151 0c:00:d7:8a:f6:03 > 2c:6b:f5:b3:78:f0, ethertype 802.1Q (0x8100), length 102: vlan 10, p 0, ethertype IPv4 (0x0800), (tos 0x0, ttl 62, id 7985, offset 0, flags [none], proto ICMP (1), length 84)
+    192.168.11.2 > 192.168.13.2: ICMP echo request, id 10601, seq 300, length 64
+```
+
+Now, run an IPv6 ping from CE1 to CE3 and capture the traffic:
+
+<img src="images/srte_myloc1_color2.png">
+
+1\. PE1:ge-0/0/2
+PE1 receives an IPv6 packet from CE1.
+```
+$ sudo ip netns exec clab-srv6-pe1 tcpdump -nvvvei eth3
+tcpdump: listening on eth3, link-type EN10MB (Ethernet), snapshot length 262144 bytes
+12:33:11.453926 2c:6b:f5:d1:cb:f0 > 0c:00:1e:e9:6e:03, ethertype 802.1Q (0x8100), length 74: vlan 10, p 0, ethertype IPv6 (0x86dd), (hlim 64, next-header ICMPv6 (58) payload length: 16) ::192:168:11:2 > ::192:168:13:2: [icmp6 sum ok] ICMP6, echo request, id 27075, seq 15
+```
+
+2\. PE1:ae1
+PE1 encapsulates the original IPv6 packet into IPv6 header with SRH containing a segment list, sets DST IPv6 to ``1111:1111:5555::`` (P2) and forwards the packet via ae1.
+```
+$ sudo ip netns exec clab-srv6-pe1 tcpdump -nvvvei eth2 ether proto 0x86dd
+tcpdump: listening on eth2, link-type EN10MB (Ethernet), snapshot length 262144 bytes
+12:34:42.451897 2c:6b:f5:e6:4e:c4 > 2c:6b:f5:87:23:c4, ethertype IPv6 (0x86dd), length 166: (flowlabel 0xd54ff, hlim 255, next-header Routing (43) payload length: 112) 2001::1:1:0:1 > 1111:1111:5555::: RT6 (len=6, type=4, segleft=2, last-entry=2, flags=0x0, tag=0, [0]1111:1111:3333:10::, [1]1111:1111:4444::, [2]1111:1111:5555::) (hlim 63, next-header ICMPv6 (58) payload length: 16) ::192:168:11:2 > ::192:168:13:2: [icmp6 sum ok] ICMP6, echo request, id 27075, seq 106
+```
+
+3\. P2:ae4
+P2 receives the packet with SRH, copies the next segment ``[1]1111:1111:4444::`` to the DST IPv6, decrements *segleft* counter by one and forwards the packet via interface ae4 to P1. 
+```
+$ sudo ip netns exec clab-srv6-p2 tcpdump -nvvvei eth3 ether proto 0x86dd
+tcpdump: listening on eth3, link-type EN10MB (Ethernet), snapshot length 262144 bytes
+12:37:17.450639 2c:6b:f5:87:23:c6 > 2c:6b:f5:65:2f:c6, ethertype IPv6 (0x86dd), length 166: (flowlabel 0xd54ff, hlim 254, next-header Routing (43) payload length: 112) 2001::1:1:0:1 > 1111:1111:4444::: RT6 (len=6, type=4, segleft=1, last-entry=2, flags=0x0, tag=0, [0]1111:1111:3333:10::, [1]1111:1111:4444::, [2]1111:1111:5555::) (hlim 63, next-header ICMPv6 (58) payload length: 16) ::192:168:11:2 > ::192:168:13:2: [icmp6 sum ok] ICMP6, echo request, id 27075, seq 261
+```
+
+4\. P1:ae5
+P1 receives the packet with SRH, copies the next segment ``[0]1111:1111:3333:10::`` to the DST IPv6, decrements *segleft* counter by one, understands that **segleft=0**, removes the SRH header and forwards the packet via interface ae5 to PE3 according to its routing table.
+```
+$ sudo ip netns exec clab-srv6-p1 tcpdump -nvvvei eth4 ether proto 0x86dd
+tcpdump: listening on eth4, link-type EN10MB (Ethernet), snapshot length 262144 bytes
+12:39:37.455733 2c:6b:f5:65:2f:c7 > 2c:6b:f5:aa:54:c2, ethertype IPv6 (0x86dd), length 110: (flowlabel 0xd54ff, hlim 253, next-header IPv6 (41) payload length: 56) 2001::1:1:0:1 > 1111:1111:3333:10::: (hlim 63, next-header ICMPv6 (58) payload length: 16) ::192:168:11:2 > ::192:168:13:2: [icmp6 sum ok] ICMP6, echo request, id 27075, seq 401
+```
+
+5\. PE3: ge-0/0/2
+Upon receiving the traffic with the DST SID = ``1111:1111:3333:10::``, PE3 performs the action corresponding to End.DT46 SID, i.e. pops the external IPv6 header, looks up the routing table in ``l3vpn10`` instance and forwards the original IPv6 packet to CE3.
+```
+$ sudo ip netns exec clab-srv6-pe3 tcpdump -nvvvei eth3
+tcpdump: listening on eth3, link-type EN10MB (Ethernet), snapshot length 262144 bytes
+12:40:34.456023 0c:00:d7:8a:f6:03 > 2c:6b:f5:b3:78:f0, ethertype 802.1Q (0x8100), length 74: vlan 10, p 0, ethertype IPv6 (0x86dd), (hlim 62, next-header ICMPv6 (58) payload length: 16) ::192:168:11:2 > ::192:168:13:2: [icmp6 sum ok] ICMP6, echo request, id 27075, seq 458
+```
+
+It has been demonstrated that SRv6-TE provides flexible tools for steering traffic in your network. In the next section, I'd like to showcase the optimization of the segment list within the SRH header.
+
+##### Compressed SRH
+The concept of compressed segment routing header (SRH) is described in [draft-ietf-spring-srv6-srh-compression-11](https://datatracker.ietf.org/doc/html/draft-ietf-spring-srv6-srh-compression-11).
+Let's configure two colored SRv6-TE paths from PE1 to PE3 locator **myloc2**:
+```
+pe1# show protocols source-packet-routing
+# show protocols source-packet-routing
+segment-list SL-P1->PE2->P2->PE3-loc2 {
+    srv6;
+    P1 {
+        micro-srv6-sid {
+            2222:2222:4444::;
+        }
+    }
+    PE2 {
+        micro-srv6-sid {
+            2222:2222:2222::;
+        }
+    }
+    P2 {
+        micro-srv6-sid {
+            2222:2222:5555::;
+        }
+    }
+    PE3 {
+        micro-srv6-sid {
+            2222:2222:3333::;
+        }
+    }
+}
+segment-list SL-P2->P1->PE3-loc2 {
+    srv6;
+    P2 {
+        micro-srv6-sid {
+            2222:2222:5555::;
+        }
+    }
+    P1 {
+        micro-srv6-sid {
+            2222:2222:4444::;
+        }
+    }
+    PE3 {
+        micro-srv6-sid {
+            2222:2222:3333::;
+        }
+    }
+}
+source-routing-path to-PE3-myloc2-color1 {
+    srv6;
+    to 2222:2222:3333::;
+    from 2001::1:1:0:1;
+    color 1;
+    primary {
+        SL-P1->PE2->P2->PE3-loc2;
+    }
+}
+source-routing-path to-PE3-myloc2-color2 {
+    srv6;
+    to 2222:2222:3333::;
+    from 2001::1:1:0:1;
+    color 2;
+    primary {
+        SL-P2->P1->PE3-loc2;
+    }
+}
+```
+You can configure SRv6-TE paths with the following command:
+```
+$ ansible-playbook -i inventory/srv6.yml playbook/srv6te.yml
+```
+Both SR paths **to-PE3-myloc2-color1** and **to-PE3-myloc2-color2** point to the SID **1111:1111:3333::** as an endpoint but they use different colors and segment lists. The actual traffic flows for each of the SR-TE paths are shown in the diagram below:
+
+<img src="images/srte_myloc2.png">
+
+While the configuration may seem similar to what was previously set up, there is a notable difference in the segment lists for paths to the locator *myloc2*. An additional parameter, ``micro-srv6-sid``, is included in the segment lists. This implies that the hops are identified by micro-SIDs configured in the form of IPv6 addresses.
+
+You can check the status of the SR-TE path with the following commands:
+```
+pe1# run show spring-traffic-engineering lsp detail
+Name: to-PE3-myloc2-color1
+  Tunnel-source: Static configuration
+  Tunnel Forward Type: SRV6
+  To: 2222:2222:3333::-1<c6>
+  From: 2001::1:1:0:1
+  State: Up
+    Path: SL-P1->PE2->P2->PE3-loc2
+    Path Status: NA
+    Outgoing interface: NA
+    Auto-translate status: Disabled Auto-translate result: N/A
+    Compute Status:Disabled , Compute Result:N/A , Compute-Profile Name:N/A
+    BFD status: N/A BFD name: N/A
+    BFD remote-discriminator: N/A
+    Segment ID : 128
+    ERO Valid: true
+      SR-ERO hop count: 4
+        Hop 1 (Loose):
+          NAI: None
+          SID type: Micro SRv6 SID, Value: 2222:2222:4444::
+          SSTLV: BL: 32, NL: 16, FL: 0, AL: 80
+        Hop 2 (Loose):
+          NAI: None
+          SID type: Micro SRv6 SID, Value: 2222:2222:2222::
+          SSTLV: BL: 32, NL: 16, FL: 0, AL: 80
+        Hop 3 (Loose):
+          NAI: None
+          SID type: Micro SRv6 SID, Value: 2222:2222:5555::
+          SSTLV: BL: 32, NL: 16, FL: 0, AL: 80
+        Hop 4 (Loose):
+          NAI: None
+          SID type: Micro SRv6 SID, Value: 2222:2222:3333::
+          SSTLV: BL: 32, NL: 16, FL: 0, AL: 80
+
+Name: to-PE3-myloc2-color2
+  Tunnel-source: Static configuration
+  Tunnel Forward Type: SRV6
+  To: 2222:2222:3333::-2<c6>
+  From: 2001::1:1:0:1
+  State: Up
+    Path: SL-P2->P1->PE3-loc2
+    Path Status: NA
+    Outgoing interface: NA
+    Auto-translate status: Disabled Auto-translate result: N/A
+    Compute Status:Disabled , Compute Result:N/A , Compute-Profile Name:N/A
+    BFD status: N/A BFD name: N/A
+    BFD remote-discriminator: N/A
+    Segment ID : 128
+    ERO Valid: true
+      SR-ERO hop count: 3
+        Hop 1 (Loose):
+          NAI: None
+          SID type: Micro SRv6 SID, Value: 2222:2222:5555::
+          SSTLV: BL: 32, NL: 16, FL: 0, AL: 80
+        Hop 2 (Loose):
+          NAI: None
+          SID type: Micro SRv6 SID, Value: 2222:2222:4444::
+          SSTLV: BL: 32, NL: 16, FL: 0, AL: 80
+        Hop 3 (Loose):
+          NAI: None
+          SID type: Micro SRv6 SID, Value: 2222:2222:3333::
+          SSTLV: BL: 32, NL: 16, FL: 0, AL: 80
+
+
+Total displayed LSPs: 2 (Up: 2, Down: 0)
+```
+
+Junos automatically creates a special routing table for each color and installs SR-TE path in the corresponding table based on the configured color.
+
+**color 1**
+```
+pe1# run show route table junos-rti-tc-1.inet6.3
+
+junos-rti-tc-1.inet6.3: 1 destinations, 1 routes (1 active, 0 holddown, 0 hidden)
++ = Active Route, - = Last Active, * = Both
+
+2222:2222:3333::/128
+                   *[SPRING-TE/8] 01:02:17, metric 1, metric2 20
+                    >  to fe80::2e6b:f5ff:fe65:2fc4 via ae0.0, SRV6-Tunnel, Dest: 2222:2222:3333::-1<c6>
+                    >  to fe80::2e6b:f5ff:fe87:23c4 via ae1.0, SRV6-Tunnel, Dest: 2222:2222:3333::-1<c6>
+
+[edit]
+aantonov@pe1# run show route table junos-rti-tc-1.inet6.3 extensive | match "SRV6-Tunnel|Src|Segment-list"
+        Next hop: via Chain Tunnel Composite, SRv6 (src 2001::1:1:0:1 dest 2222:2222:3333::-1<c6>)
+        SRV6-Tunnel: Non-Reduced-SRH Encap-mode Remove-Last-Sid
+         Src: 2001::1:1:0:1 Dest: 2222:2222:3333::-1<c6>
+         Segment-list[0] 2222:2222:4444::
+         Segment-list[1] 2222:2222:2222::
+         Segment-list[2] 2222:2222:5555::
+         Segment-list[3] 2222:2222:3333::
+...
+```
+**color 2**
+```
+pe1# run show route table junos-rti-tc-2.inet6.3
+
+junos-rti-tc-2.inet6.3: 1 destinations, 1 routes (1 active, 0 holddown, 0 hidden)
++ = Active Route, - = Last Active, * = Both
+
+2222:2222:3333::/128
+                   *[SPRING-TE/8] 01:03:05, metric 1, metric2 20
+                    >  to fe80::2e6b:f5ff:fe87:23c4 via ae1.0, SRV6-Tunnel, Dest: 2222:2222:3333::-2<c6>
+                    >  to fe80::2e6b:f5ff:fe65:2fc4 via ae0.0, SRV6-Tunnel, Dest: 2222:2222:3333::-2<c6>
+
+[edit]
+pe1# run show route table junos-rti-tc-2.inet6.3 extensive | match "SRV6-Tunnel|Src|Segment-list"
+        Next hop: via Chain Tunnel Composite, SRv6 (src 2001::1:1:0:1 dest 2222:2222:3333::-2<c6>)
+        SRV6-Tunnel: Non-Reduced-SRH Encap-mode Remove-Last-Sid
+         Src: 2001::1:1:0:1 Dest: 2222:2222:3333::-2<c6>
+         Segment-list[0] 2222:2222:5555::
+         Segment-list[1] 2222:2222:4444::
+         Segment-list[2] 2222:2222:3333::
+...
+```
+Now, configure PE1 to select which of the two SRv6-TE tunnels to use for traffic forwarding to PE3. This is where the BGP color community comes into play. Assign **color 1** to IPv4 prefixes and **color 2** to IPv6 prefixes advertised by PE3 from the ``l3vpn20`` routing-instance. 
+
+```
+set policy-options policy-statement l3vpn20_export term 1 from route-filter 192.168.23.0/24 exact
+set policy-options policy-statement l3vpn20_export term 1 then community add color_1_comm
+set policy-options policy-statement l3vpn20_export term 2 from route-filter ::192:168:23:0/112 exact
+set policy-options policy-statement l3vpn20_export term 2 then community add color_2_comm
+set policy-options policy-statement l3vpn20_export term default then community add l3vpn20_comm
+set policy-options policy-statement l3vpn20_export term default then accept
+set policy-options policy-statement l3vpn20_import from community l3vpn20_comm
+set policy-options policy-statement l3vpn20_import then accept
+set policy-options community color_1_comm members color:0:1
+set policy-options community color_2_comm members color:0:2
+set policy-options community l3vpn20_comm members target:65100:20
+set routing-instances l3vpn20 vrf-import l3vpn20_import
+set routing-instances l3vpn20 vrf-export l3vpn20_export
+```
+Ensure that PE1 is receiving VPN routes with the color community assigned.
+```
+pe1# run show route receive-protocol bgp 2001::1:1:0:3 table l3vpn20 extensive
+
+l3vpn20.inet.0: 4 destinations, 4 routes (4 active, 0 holddown, 0 hidden)
+* 192.168.23.0/24 (1 entry, 1 announced)
+     Import Accepted MultiNexthop
+     Route Distinguisher: 1.1.0.3:20
+     VPN Label: 917584
+     Nexthop: 2001::1:1:0:3
+     Localpref: 100
+     AS path: I
+     Communities: target:65100:20 color:0:1
+                SRv6 SID: 2222:2222:3333:: Service tlv type: 5 Behavior: 64 BL: 32 NL: 16 FL: 16 AL: 0 TL: 16 TO: 48
+
+l3vpn20.inet6.0: 6 destinations, 6 routes (6 active, 0 holddown, 0 hidden)
+
+* ::192:168:23:0/112 (1 entry, 1 announced)
+     Import Accepted MultiNexthop
+     Route Distinguisher: 1.1.0.3:20
+     VPN Label: 917584
+     Nexthop: 2001::1:1:0:3
+     Localpref: 100
+     AS path: I
+     Communities: target:65100:20 color:0:2
+                SRv6 SID: 2222:2222:3333:: Service tlv type: 5 Behavior: 64 BL: 32 NL: 16 FL: 16 AL: 0 TL: 16 TO: 48
+```
+
+PE1 installs both IPv4 and IPv6 routes into corresponding tables and uses a colored SRv6-TE tunnel as a next-hop. 
+```
+pe1# run show route 192.168.23.0/24 table l3vpn20
+
+l3vpn20.inet.0: 4 destinations, 4 routes (4 active, 0 holddown, 0 hidden)
++ = Active Route, - = Last Active, * = Both
+
+192.168.23.0/24    *[BGP/170] 01:10:39, localpref 100, from 2001::1:1:0:3
+                      AS path: I, validation-state: unverified
+                    >  to fe80::2e6b:f5ff:fe65:2fc4 via ae0.0, SRv6 SID: 2222:2222:3333:e005::, SRV6-Tunnel, Dest: 2222:2222:3333::-1<c6>
+                    >  to fe80::2e6b:f5ff:fe87:23c4 via ae1.0, SRv6 SID: 2222:2222:3333:e005::, SRV6-Tunnel, Dest: 2222:2222:3333::-1<c6>
+
+[edit]
+pe1# run show route ::192:168:23:0/112 table l3vpn20
+
+l3vpn20.inet6.0: 6 destinations, 6 routes (6 active, 0 holddown, 0 hidden)
++ = Active Route, - = Last Active, * = Both
+
+::192:168:23:0/112 *[BGP/170] 01:10:54, localpref 100, from 2001::1:1:0:3
+                      AS path: I, validation-state: unverified
+                    >  to fe80::2e6b:f5ff:fe87:23c4 via ae1.0, SRv6 SID: 2222:2222:3333:e005::, SRV6-Tunnel, Dest: 2222:2222:3333::-2<c6>
+                    >  to fe80::2e6b:f5ff:fe65:2fc4 via ae0.0, SRv6 SID: 2222:2222:3333:e005::, SRV6-Tunnel, Dest: 2222:2222:3333::-2<c6>
+```
+Let's take a look at what is happening in the data plane. Run an IPv4 ping from CE1 to CE3 and capture the traffic:
+
+<img src="images/srte_myloc2_color1.png">
+
+1\. PE1:ge-0/0/2
+PE1 receives an IPv4 packet from CE1.
+```
+$ sudo ip netns exec clab-srv6-pe1 tcpdump -nvvvei eth3
+tcpdump: listening on eth3, link-type EN10MB (Ethernet), snapshot length 262144 bytes
+17:14:06.592967 2c:6b:f5:d1:cb:f0 > 0c:00:1e:e9:6e:03, ethertype 802.1Q (0x8100), length 102: vlan 20, p 0, ethertype IPv4 (0x0800), (tos 0x0, ttl 64, id 8181, offset 0, flags [none], proto ICMP (1), length 84)
+    192.168.21.2 > 192.168.23.2: ICMP echo request, id 64618, seq 19, length 64
+```
+
+2\. PE1:ae0
+PE1 encapsulates the original IPv4 packet into an IPv6 header with SRH which contains a segment list with two segments. The segment ``[0]2222:2222:3333:e005::`` represents the egress PE3 SID for the L3VPN instance while ``[1]2222:2222:4444:2222:5555::`` is a 'compressed' SID. It consists of a locator block 2222:2222 (32 bits) followed by micro-SIDs (16 bits each) encoding the path to the destination. PE1 sets DST IPv6 to ``2222:2222:4444:2222:5555::`` and forwards the packet via ae0 to P1 because it is P1 that is advertising the SID ``2222:2222:4444::/48``.
+```
+$ sudo ip netns exec clab-srv6-pe1 tcpdump -nvvvei eth1 ether proto 0x86dd
+tcpdump: listening on eth1, link-type EN10MB (Ethernet), snapshot length 262144 bytes
+17:15:20.094362 2c:6b:f5:e6:4e:c3 > 2c:6b:f5:65:2f:c4, ethertype IPv6 (0x86dd), length 178: (flowlabel 0xa3aae, hlim 255, next-header Routing (43) payload length: 124) 2001::1:1:0:1 > 2222:2222:4444:2222:5555::: RT6 (len=4, type=4, segleft=1, last-entry=1, flags=0x0, tag=0, [0]2222:2222:3333:e005::, [1]2222:2222:4444:2222:5555::) (tos 0x0, ttl 63, id 10720, offset 0, flags [none], proto ICMP (1), length 84)
+    192.168.21.2 > 192.168.23.2: ICMP echo request, id 64618, seq 92, length 64
+```
+
+3\. P1:ae2
+P1 receives the packet with SRH, recognises its local micro-SID *4444*, removes the local micro-SID from the DST IPv6 address and shifts left the remaining micro-sids (``2222:2222:4444:2222:5555:: -> 2222:2222:2222:5555::``). The *segleft* counter in the SRH remains unchanged. Then, P1 forwards the packet via interface ae2 to PE2 because it is PE2 that is advertising the SID ``2222:2222:2222::/48``.
+```
+$ sudo ip netns exec clab-srv6-p1 tcpdump -nvvvei eth2 ether proto 0x86dd
+tcpdump: listening on eth2, link-type EN10MB (Ethernet), snapshot length 262144 bytes
+17:17:24.662139 2c:6b:f5:65:2f:c5 > 2c:6b:f5:29:63:c3, ethertype IPv6 (0x86dd), length 178: (flowlabel 0xa3aae, hlim 254, next-header Routing (43) payload length: 124) 2001::1:1:0:1 > 2222:2222:2222:5555::: RT6 (len=4, type=4, segleft=1, last-entry=1, flags=0x0, tag=0, [0]2222:2222:3333:e005::, [1]2222:2222:4444:2222:5555::) (tos 0x0, ttl 63, id 15060, offset 0, flags [none], proto ICMP (1), length 84)
+    192.168.21.2 > 192.168.23.2: ICMP echo request, id 64618, seq 216, length 64
+```
+
+4\. PE2:ae3
+PE2 receives the packet with SRH, recognises its local micro-SID *2222*, removes the local micro-SID from the DST IPv6 address and shifts left the remaining micro-sids (``2222:2222:2222:5555:: -> 2222:2222:5555::``). The *segleft* counter in the SRH remains unchanged. Then, PE2 forwards the packet via interface ae3 to P2 because it is P2 that is advertising the SID ``2222:2222:5555::/48``.
+```
+$ sudo ip netns exec clab-srv6-pe2 tcpdump -nvvvei eth1 ether proto 0x86dd
+tcpdump: listening on eth1, link-type EN10MB (Ethernet), snapshot length 262144 bytes
+17:17:52.846736 2c:6b:f5:29:63:c4 > 2c:6b:f5:87:23:c5, ethertype IPv6 (0x86dd), length 178: (flowlabel 0xa3aae, hlim 253, next-header Routing (43) payload length: 124) 2001::1:1:0:1 > 2222:2222:5555::: RT6 (len=4, type=4, segleft=1, last-entry=1, flags=0x0, tag=0, [0]2222:2222:3333:e005::, [1]2222:2222:4444:2222:5555::) (tos 0x0, ttl 63, id 16035, offset 0, flags [none], proto ICMP (1), length 84)
+    192.168.21.2 > 192.168.23.2: ICMP echo request, id 64618, seq 244, length 64
+```
+
+5\. P2:ae6
+P2 receives the packet with SRH, recognises its local micro-SID *5555*, removes the local micro-SID from the DST IPv6 address and understands that no micro-sids are left. Then, it copies the next segment from the SRH to DST IPv6 and decrements the *segleft* counter in the SRH by one. Since *segleft* is now '0', the SRH header is removed. The packet is forwarded via interface ae3 to P2 because it is P2 that is advertising the SID ``2222:2222:3333::/48``.
+```
+$ sudo ip netns exec clab-srv6-p2 tcpdump -nvvvei eth4 ether proto 0x86dd
+tcpdump: listening on eth4, link-type EN10MB (Ethernet), snapshot length 262144 bytes
+17:18:18.064364 2c:6b:f5:87:23:c7 > 2c:6b:f5:aa:54:c3, ethertype IPv6 (0x86dd), length 138: (flowlabel 0xa3aae, hlim 252, next-header IPIP (4) payload length: 84) 2001::1:1:0:1 > 2222:2222:3333:e005::: (tos 0x0, ttl 63, id 16901, offset 0, flags [none], proto ICMP (1), length 84)
+    192.168.21.2 > 192.168.23.2: ICMP echo request, id 64618, seq 269, length 64
+```
+
+6\. PE3:ge-0/0/2
+Upon receiving the traffic with the DST SID = ``1111:1111:3333:e005::``, PE3 performs the action corresponding to End.DT46 with NEXT-CSID, i.e. pops the external IPv6 header, looks up the routing table in ``l3vpn20`` instance and forwards the IPv4 packet to CE3.
+```
+$ sudo ip netns exec clab-srv6-pe3 tcpdump -nvvvei eth3
+tcpdump: listening on eth3, link-type EN10MB (Ethernet), snapshot length 262144 bytes
+17:18:42.157609 0c:00:d7:8a:f6:03 > 2c:6b:f5:b3:78:f0, ethertype 802.1Q (0x8100), length 102: vlan 20, p 0, ethertype IPv4 (0x0800), (tos 0x0, ttl 62, id 17745, offset 0, flags [none], proto ICMP (1), length 84)
+    192.168.21.2 > 192.168.23.2: ICMP echo request, id 64618, seq 293, length 64
+```
+
+Now, run an IPv6 ping from CE1 to CE3 and capture the traffic:
+
+<img src="images/srte_myloc2_color2.png">
+
+1\. PE1:ge-0/0/2
+PE1 receives an IPv6 packet from CE1.
+```
+$ sudo ip netns exec clab-srv6-pe1 tcpdump -nvvvei eth3
+tcpdump: listening on eth3, link-type EN10MB (Ethernet), snapshot length 262144 bytes
+17:19:38.535478 2c:6b:f5:d1:cb:f0 > 0c:00:1e:e9:6e:03, ethertype 802.1Q (0x8100), length 74: vlan 20, p 0, ethertype IPv6 (0x86dd), (hlim 64, next-header ICMPv6 (58) payload length: 16) ::192:168:21:2 > ::192:168:23:2: [icmp6 sum ok] ICMP6, echo request, id 27400, seq 16
+```
+
+2\. PE1:ae1
+PE1 encapsulates the original IPv6 packet into an IPv6 header with SRH which contains a segment list with two segments. The segment ``[0]2222:2222:3333:e005::`` represents the egress PE3 SID for the L3VPN instance while ``[1]2222:2222:5555:4444::`` is a 'compressed' SID. It consists of a locator block 2222:2222 (32 bits) followed by micro-SIDs (16 bits each) encoding the path to the destination. PE1 sets DST IPv6 to ``2222:2222:5555:4444::`` and forwards the packet via ae1 to P2 because it is P2 that is advertising the SID ``2222:2222:5555::/48``.
+```
+$ sudo ip netns exec clab-srv6-pe1 tcpdump -nvvvei eth2 ether proto 0x86dd
+tcpdump: listening on eth2, link-type EN10MB (Ethernet), snapshot length 262144 bytes
+17:20:11.536497 2c:6b:f5:e6:4e:c4 > 2c:6b:f5:87:23:c4, ethertype IPv6 (0x86dd), length 150: (flowlabel 0xe7283, hlim 255, next-header Routing (43) payload length: 96) 2001::1:1:0:1 > 2222:2222:5555:4444::: RT6 (len=4, type=4, segleft=1, last-entry=1, flags=0x0, tag=0, [0]2222:2222:3333:e005::, [1]2222:2222:5555:4444::) (hlim 63, next-header ICMPv6 (58) payload length: 16) ::192:168:21:2 > ::192:168:23:2: [icmp6 sum ok] ICMP6, echo request, id 27400, seq 49
+```
+
+3\. P2:ae4
+P2 receives the packet with SRH, recognises its local micro-SID *5555*, removes the local micro-SID from the DST IPv6 address and shifts left the remaining micro-sids (``2222:2222:5555:4444:: -> 2222:2222:4444::``). The *segleft* counter in the SRH remains unchanged. Then, P2 forwards the packet via interface ae4 to P1 because it is P1 that is advertising the SID ``2222:2222:4444::/48``.
+```
+$ sudo ip netns exec clab-srv6-p2 tcpdump -nvvvei eth3 ether proto 0x86dd
+tcpdump: listening on eth3, link-type EN10MB (Ethernet), snapshot length 262144 bytes
+17:20:47.533078 2c:6b:f5:87:23:c6 > 2c:6b:f5:65:2f:c6, ethertype IPv6 (0x86dd), length 150: (flowlabel 0xe7283, hlim 254, next-header Routing (43) payload length: 96) 2001::1:1:0:1 > 2222:2222:4444::: RT6 (len=4, type=4, segleft=1, last-entry=1, flags=0x0, tag=0, [0]2222:2222:3333:e005::, [1]2222:2222:5555:4444::) (hlim 63, next-header ICMPv6 (58) payload length: 16) ::192:168:21:2 > ::192:168:23:2: [icmp6 sum ok] ICMP6, echo request, id 27400, seq 85
+```
+
+4\. P1:ae5
+P2 receives the packet with SRH, recognises its local micro-SID *4444*, removes the local micro-SID from the DST IPv6 address and understands that no micro-sids are left. Then, it copies the next segment from the SRH to DST IPv6 and decrements the *segleft* counter in the SRH by one. Since *segleft* is now '0', the SRH header is removed. The packet is forwarded via interface ae5 to PE3 because it is PE3 that is advertising the SID ``2222:2222:3333::/48``.
+```
+$ sudo ip netns exec clab-srv6-p1 tcpdump -nvvvei eth4 ether proto 0x86dd
+tcpdump: listening on eth4, link-type EN10MB (Ethernet), snapshot length 262144 bytes
+17:21:18.533721 2c:6b:f5:65:2f:c7 > 2c:6b:f5:aa:54:c2, ethertype IPv6 (0x86dd), length 110: (flowlabel 0xe7283, hlim 253, next-header IPv6 (41) payload length: 56) 2001::1:1:0:1 > 2222:2222:3333:e005::: (hlim 63, next-header ICMPv6 (58) payload length: 16) ::192:168:21:2 > ::192:168:23:2: [icmp6 sum ok] ICMP6, echo request, id 27400, seq 116
+```
+
+5\. PE3: ge-0/0/2
+Upon receiving the traffic with the DST SID = ``1111:1111:3333:e005::``, PE3 performs the action corresponding to End.DT46 with NEXT-CSID, i.e. pops the external IPv6 header, looks up the routing table in ``l3vpn20`` instance and forwards the original IPv6 packet to CE3.
+```
+$ sudo ip netns exec clab-srv6-pe3 tcpdump -nvvvei eth3
+tcpdump: listening on eth3, link-type EN10MB (Ethernet), snapshot length 262144 bytes
+17:21:49.539629 0c:00:d7:8a:f6:03 > 2c:6b:f5:b3:78:f0, ethertype 802.1Q (0x8100), length 74: vlan 20, p 0, ethertype IPv6 (0x86dd), (hlim 62, next-header ICMPv6 (58) payload length: 16) ::192:168:21:2 > ::192:168:23:2: [icmp6 sum ok] ICMP6, echo request, id 27400, seq 147
+```
+
+In this chapter, I have tried to demonstrate how SRH segment lists can be compressed to optimise bandwidth usage.
+
+-----
+The full configuration can be generated and uploaded to the devices using the following command:
+```
+$ ansible-playbook -i inventory/srv6.yml playbook/all.yml
+```
+
+To back up configuration from all devices in both *set* and *text* formats, you can use the following command:
+```
+$ ansible-playbook -i inventory/srv6.yml playbook/backup_config.yml
+```
