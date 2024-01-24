@@ -2017,7 +2017,7 @@ tcpdump: listening on eth3, link-type EN10MB (Ethernet), snapshot length 262144 
 
 4\. P1:ae5
 
-P2 receives the packet with SRH, recognises its local micro-SID *4444*, removes the local micro-SID from the DST IPv6 address and understands that no micro-sids are left. Then, it copies the next segment from the SRH to DST IPv6 and decrements the *segleft* counter in the SRH by one. Since *segleft* is now '0', the SRH header is removed. The packet is forwarded via interface ae5 to PE3 because it is PE3 that is advertising the SID ``2222:2222:3333::/48``.
+P1 receives the packet with SRH, recognises its local micro-SID *4444*, removes the local micro-SID from the DST IPv6 address and understands that no micro-sids are left. Then, it copies the next segment from the SRH to DST IPv6 and decrements the *segleft* counter in the SRH by one. Since *segleft* is now '0', the SRH header is removed. The packet is forwarded via interface ae5 to PE3 because it is PE3 that is advertising the SID ``2222:2222:3333::/48``.
 ```
 $ sudo ip netns exec clab-srv6-p1 tcpdump -nvvvei eth4 ether proto 0x86dd
 tcpdump: listening on eth4, link-type EN10MB (Ethernet), snapshot length 262144 bytes
