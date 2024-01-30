@@ -34,7 +34,7 @@ vrnetlab/vr-vmx             23.4R1.10      bb5ef5b27530   3 days ago     10.9GB
 Once the docker images are in place, you start building the actual topology. I'm going to deploy three PE routers connected to two P routers, each PE router having a CE device connected to it: PE1-CE1, PE2-CE2, PE3-CE3. In addition, there is a multihomed CE12 connected to both PE1 and PE2 with an ae12 bundle. 
 <img src="images/phys_topo.png">
 
-I created a container lab [topology file](https://github.com/agantonov/clab/blob/master/srv6-vmx.yml) where I specified Docker images and connections between containers. You can find more information about the syntax in the [user guide](https://containerlab.dev/manual/topo-def-file/). 
+I created a container lab [topology file](https://github.com/agantonov/clab/blob/main/srv6/srv6-vmx.yml) where I specified Docker images and connections between containers. You can find more information about the syntax in the [user guide](https://containerlab.dev/manual/topo-def-file/). 
 
 Now let's deploy the topology:
 ```
