@@ -1297,7 +1297,7 @@ It has been succesfully demonstrated that L2 and L3 services can work smoothly o
 
 ### SRv6 Traffic Engineering
 
-<code style="color : green">**The text below is a bit outdated and may contain inaccuracies. Please refer to my [latest article](https://github.com/agantonov/srv6-te) on SRv6-TE which provides an up-to-date view of the technology**.</code>
+**The text below is a bit outdated and may contain inaccuracies. Please refer to my [latest article](https://github.com/agantonov/srv6-te) on SRv6-TE which provides an up-to-date view of the technology**.
 
 The SRv6 TE technology enables steering of traffic along predefined paths as opposed to relying on a best-effort approach. This functionality is laid out in Chapter 10 of the [DayOne SRv6 book](https://www.juniper.net/documentation/en_US/day-one-books/DayOne-Intro-SRv6.pdf). In a real network, you will most likely be using a controller for configuring SRv6 TE paths via PCEP. However, for the purposes of this demo, I'm going to focus on static SRv6 TE colored tunnels. 
 
